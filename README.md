@@ -1,3 +1,3 @@
-# n_scop~
-### simple multiwave oscilloscope.
+# n_scopxy~
+### simple multiwave XY-scope.
 ![Screenshot](screen.png)
