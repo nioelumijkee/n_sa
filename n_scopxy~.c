@@ -4,13 +4,11 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include "m_pd.h"
-#include "ginfo.c"
+#include "gi.c"
 
-#define AF_CLIP_MINMAX(MIN, MAX, IN) \
-  if ((IN) < (MIN))		     \
-    (IN) = (MIN);		     \
-  else if ((IN) > (MAX))	     \
-    (IN) = (MAX);
+#define AF_CLIP_MINMAX(MIN, MAX, IN)            \
+  if      ((IN) < (MIN))  (IN) = (MIN);         \
+  else if ((IN) > (MAX))  (IN) = (MAX);
 
 #define MAXCHANNEL 16
 
@@ -56,7 +54,7 @@ typedef struct _n_scopxy
   SDL_Window *win;             /* win */
   SDL_GLContext glcontext;
   SDL_Event event;
-  t_ginfo gi;                  /* ginfo */
+  t_gi gi;                     /* ginfo */
   int on;                      /* scope */
   int channel;
   int channel_all;
@@ -103,32 +101,32 @@ void n_scopxy_redraw(t_n_scopxy *x)
   if (x->window_on)
     {
       for (j = 0; j < x->channel; j++)
-	{
-	  glLineWidth(x->ch[j].lw);
-	  x_z = x->ch[j].x_z;
-	  y_z = x->ch[j].y_z;
-	  i = 0;
-	  while (i < x->s_max)
-	    {
-	      GLfloat f = x_z - x->ch[j].x[i]; // diff
-	      if (f < 0.)
-		f = 0. - f;
-	      AF_CLIP_MINMAX(0., 1., f)
-		f = 1. - f;
-	      f = f * f * f * f;
-	      f = f * x->ch[j].ca;
-	      glColor4f(x->ch[j].cr, x->ch[j].cg, x->ch[j].cb, f);
-	      glBegin(GL_LINES);
-	      glVertex2f(x_z, y_z);
-	      glVertex2f(x->ch[j].x[i], x->ch[j].y[i]);
-	      glEnd();
-	      x_z = x->ch[j].x[i];
-	      y_z = x->ch[j].y[i];
-	      i++;
-	    }
-	  x->ch[j].x_z = x_z;
-	  x->ch[j].y_z = y_z;
-	}
+        {
+          glLineWidth(x->ch[j].lw);
+          x_z = x->ch[j].x_z;
+          y_z = x->ch[j].y_z;
+          i = 0;
+          while (i < x->s_max)
+            {
+              GLfloat f = x_z - x->ch[j].x[i]; // diff
+              if (f < 0.)
+                f = 0. - f;
+              AF_CLIP_MINMAX(0., 1., f);
+              f = 1. - f;
+              f = f * f * f * f;
+              f = f * x->ch[j].ca;
+              glColor4f(x->ch[j].cr, x->ch[j].cg, x->ch[j].cb, f);
+              glBegin(GL_LINES);
+              glVertex2f(x_z, y_z);
+              glVertex2f(x->ch[j].x[i], x->ch[j].y[i]);
+              glEnd();
+              x_z = x->ch[j].x[i];
+              y_z = x->ch[j].y[i];
+              i++;
+            }
+          x->ch[j].x_z = x_z;
+          x->ch[j].y_z = y_z;
+        }
     }
   
   glFlush();
@@ -154,19 +152,19 @@ t_int *n_scopxy_perform(t_int *w)
     {
       // dsp
       while (n--)
-	{
-	  for (i = 0; i < x->channel; i++)
-	    {
-	      x->ch[i].x[x->count] = *(in_x[i]++);
-	      x->ch[i].y[x->count] = *(in_y[i]++);
-	    }
-	  x->count++;
-	  if (x->count == x->s_max)
-	    {
-	      x->count = 0;
-	      n_scopxy_redraw(x);
-	    }
-	}
+        {
+          for (i = 0; i < x->channel; i++)
+            {
+              x->ch[i].x[x->count] = *(in_x[i]++);
+              x->ch[i].y[x->count] = *(in_y[i]++);
+            }
+          x->count++;
+          if (x->count == x->s_max)
+            {
+              x->count = 0;
+              n_scopxy_redraw(x);
+            }
+        }
     }
   freebytes(in_x, sizeof(float) * x->channel);
   freebytes(in_y, sizeof(float) * x->channel);
@@ -185,16 +183,9 @@ void n_scopxy_calc_constant(t_n_scopxy *x)
       x->ch[i].x = malloc(sizeof(float) * x->s_max);
       x->ch[i].y = malloc(sizeof(float) * x->s_max);
       if (x->ch[i].x == NULL || x->ch[i].y == NULL)
-	error("n_scopxy: error allocating memory");
+        error("n_scopxy: error allocating memory");
     }
   x->count = 0;
-}
-
-//----------------------------------------------------------------------------//
-void n_scopxy_info(t_n_scopxy *x)
-{
-  get_ginfo(&x->gi);
-  post_ginfo(x->gi);
 }
 
 //----------------------------------------------------------------------------//
@@ -240,15 +231,62 @@ void n_scopxy_output_save(t_n_scopxy *x, int i)
 }
 
 //----------------------------------------------------------------------------//
+void n_scopxy_outlet_gi(t_n_scopxy *x)
+{
+  int i;
+  t_atom a[10];
+  
+  SETSYMBOL(a,    gensym("opengl_ver"));
+  SETSYMBOL(a+1,  gensym(x->gi.opengl_ver));
+  outlet_anything(x->out, gensym("gi"), 2, a);
+  
+  SETSYMBOL(a,    gensym("opengl_vendor"));
+  SETSYMBOL(a+1,  gensym(x->gi.opengl_vendor));
+  outlet_anything(x->out, gensym("gi"), 2, a);
+  
+  SETSYMBOL(a,    gensym("opengl_extensions"));
+  SETSYMBOL(a+1,  gensym(x->gi.opengl_ext));
+  outlet_anything(x->out, gensym("gi"), 2, a);
+  
+  SETSYMBOL(a,    gensym("sdl_ver_compiled"));
+  SETFLOAT(a+1,   (t_float)x->gi.sdl_ver_compiled.major);
+  SETFLOAT(a+2,   (t_float)x->gi.sdl_ver_compiled.minor);
+  SETFLOAT(a+3,   (t_float)x->gi.sdl_ver_compiled.patch);
+  outlet_anything(x->out, gensym("gi"), 4, a);
+
+  SETSYMBOL(a,    gensym("sdl_ver_linked"));
+  SETFLOAT(a+1,   (t_float)x->gi.sdl_ver_linked.major);
+  SETFLOAT(a+2,   (t_float)x->gi.sdl_ver_linked.minor);
+  SETFLOAT(a+3,   (t_float)x->gi.sdl_ver_linked.patch);
+  outlet_anything(x->out, gensym("gi"), 4, a);
+
+  SETSYMBOL(a,    gensym("driver"));
+  SETSYMBOL(a+1,  gensym(x->gi.driver));
+  outlet_anything(x->out, gensym("gi"), 2, a);
+
+  for (i=0; i<x->gi.num_disp; i++)
+    {
+      SETSYMBOL(a,    gensym("display"));
+      SETFLOAT(a+1,   (t_float)i);
+      SETSYMBOL(a+2,  gensym(x->gi.display_name[i]));
+      SETFLOAT(a+3,   (t_float)x->gi.display_mode[i].w);
+      SETFLOAT(a+4,   (t_float)x->gi.display_mode[i].h);
+      SETFLOAT(a+5,   (t_float)x->gi.display_mode[i].refresh_rate);
+      SETFLOAT(a+6,   (t_float)x->gi.ddpi[i]);
+      SETFLOAT(a+7,   (t_float)x->gi.hdpi[i]);
+      SETFLOAT(a+8,   (t_float)x->gi.vdpi[i]);
+      outlet_anything(x->out, gensym("gi"), 9, a);
+    }
+}
+
+//----------------------------------------------------------------------------//
 void n_scopxy_reshape(t_n_scopxy *x)
 {
   glClearColor(0., 0., 0., 0.);
-
   glViewport(0, 0, (GLsizei)x->window_w, (GLsizei)x->window_h);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluOrtho2D(-1., -1., 1., 1.);
-  
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
@@ -278,25 +316,25 @@ void n_scopxy_fullscreen(t_n_scopxy *x)
     {
       x->fullscreen = !x->fullscreen;
       if (x->fullscreen)
-	{
-	  x->window_w_z = x->window_w;
-	  x->window_h_z = x->window_h;
-	  x->window_w = x->gi.display_mode[0].w;
-	  x->window_h = x->gi.display_mode[0].h;
-	  SDL_SetWindowDisplayMode(x->win, &x->gi.display_mode[0]);
-	  SDL_SetWindowFullscreen(x->win, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
-	  n_scopxy_reshape(x);
-	  n_scopxy_redraw(x);
-	}
+        {
+          x->window_w_z = x->window_w;
+          x->window_h_z = x->window_h;
+          x->window_w = x->gi.display_mode[0].w;
+          x->window_h = x->gi.display_mode[0].h;
+          SDL_SetWindowDisplayMode(x->win, &x->gi.display_mode[0]);
+          SDL_SetWindowFullscreen(x->win, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
+          n_scopxy_reshape(x);
+          n_scopxy_redraw(x);
+        }
       else
-	{
-	  x->window_w = x->window_w_z;
-	  x->window_h = x->window_h_z;
-	  SDL_SetWindowDisplayMode(x->win, &x->gi.display_mode[0]);
-	  SDL_SetWindowFullscreen(x->win, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
-	  n_scopxy_reshape(x);
-	  n_scopxy_redraw(x);
-	}
+        {
+          x->window_w = x->window_w_z;
+          x->window_h = x->window_h_z;
+          SDL_SetWindowDisplayMode(x->win, &x->gi.display_mode[0]);
+          SDL_SetWindowFullscreen(x->win, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+          n_scopxy_reshape(x);
+          n_scopxy_redraw(x);
+        }
     }
 }
 
@@ -309,37 +347,28 @@ void n_scopxy_window(t_n_scopxy *x, t_floatarg f)
     {
       // sdl
       if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
-	{
-	  error("SDL_Init error: %s", SDL_GetError());
-	  return;
-	}
+        {
+          error("SDL_Init error: %s", SDL_GetError());
+          return;
+        }
       
       // window
       if ((x->win = SDL_CreateWindow("n_scopxy~",
-				     32,
-				     32,
-				     x->window_w,
-				     x->window_h,
-				     SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL)) == NULL)
-	{
-	  error("SDL_CreateWindow error: %s", SDL_GetError());
+                                     32,
+                                     32,
+                                     x->window_w,
+                                     x->window_h,
+                                     SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL)) == NULL)
+        {
+          error("SDL_CreateWindow error: %s", SDL_GetError());
 	  return;
-	}
+        }
       
-      // OpenGL context
       x->glcontext = SDL_GL_CreateContext(x->win);
-      
-      // ginfo
-      get_ginfo(&x->gi);
+      get_gi(&x->gi);
       x->ttime = x->gi.display_mode[0].refresh_rate / 2;
-      
-      // OpenGL init
       n_scopxy_reshape(x);
-      
-      // redraw
       n_scopxy_redraw(x);
-      
-      // clock
       clock_delay(x->t, x->ttime);
     }
   else
@@ -348,7 +377,6 @@ void n_scopxy_window(t_n_scopxy *x, t_floatarg f)
       SDL_Quit();
       clock_unset(x->t);
     }
-  // out
   n_scopxy_output_window(x);
 }
 
@@ -359,40 +387,40 @@ void n_scopxy_events(t_n_scopxy *x)
   if (x->window_on)
     {
       while (SDL_PollEvent(&x->event))
-	{
-	  switch (x->event.type)
-	    {
-	    case SDL_WINDOWEVENT:
-	      switch (x->event.window.event)
-		{
-		case SDL_WINDOWEVENT_SIZE_CHANGED:
-		  x->window_w = x->event.window.data1;
-		  x->window_h = x->event.window.data2;
-		  n_scopxy_reshape(x);
-		  n_scopxy_redraw(x);
-		  break;
-		case SDL_WINDOWEVENT_RESIZED:
-		  n_scopxy_output_size(x);
-		  break;
-		case SDL_WINDOWEVENT_CLOSE:
-		  n_scopxy_window(x, 0);
-		  break;
-		}
-	      break;
-	    case SDL_KEYDOWN:
-	      switch (x->event.key.keysym.sym)
-		{
-		case SDLK_F11:
-		  n_scopxy_fullscreen(x);
-		  break;
-		case SDLK_ESCAPE:
-		  n_scopxy_window(x, 0);
-		  break;
-		}
-	      break;
-	    }
-	  break;
-	}
+        {
+          switch (x->event.type)
+            {
+            case SDL_WINDOWEVENT:
+              switch (x->event.window.event)
+                {
+                case SDL_WINDOWEVENT_SIZE_CHANGED:
+                  x->window_w = x->event.window.data1;
+                  x->window_h = x->event.window.data2;
+                  n_scopxy_reshape(x);
+                  n_scopxy_redraw(x);
+                  break;
+                case SDL_WINDOWEVENT_RESIZED:
+                  n_scopxy_output_size(x);
+                  break;
+                case SDL_WINDOWEVENT_CLOSE:
+                  n_scopxy_window(x, 0);
+                  break;
+                }
+              break;
+            case SDL_KEYDOWN:
+              switch (x->event.key.keysym.sym)
+                {
+                case SDLK_F11:
+                  n_scopxy_fullscreen(x);
+                  break;
+                case SDLK_ESCAPE:
+                  n_scopxy_window(x, 0);
+                  break;
+                }
+              break;
+            }
+          break;
+        }
     }
   //
   if (x->window_on && x->window_size_changed)
@@ -481,11 +509,11 @@ void n_scopxy_save(t_n_scopxy *x, t_symbol *s)
       unsigned char size_h0 = x->window_h / 256;
       unsigned char size_h1 = x->window_h - (size_h0 * 256);
       unsigned char header[] = {0, 0, 2, 0, 0, 0, 0, 0, 
-				0, 0, 
-				size_h1, size_h0,
-				size_w1, size_w0,
-				size_h1, size_h0,
-				24, 32};
+                                0, 0, 
+                                size_h1, size_h0,
+                                size_w1, size_w0,
+                                size_h1, size_h0,
+                                24, 32};
       fwrite(&header, sizeof(header), 1, output_file);
       fwrite(pixels, number_of_pixels, 1, output_file);
       fclose(output_file);
@@ -514,7 +542,6 @@ void *n_scopxy_new(t_floatarg f)
       inlet_new(&x->x_obj, &x->x_obj.ob_pd, &s_signal, &s_signal);
     }
   x->out = outlet_new(&x->x_obj, 0);
-
   x->sr = 44100.;
   x->ttime = 60 / 2; /* default */
   x->on = 0;
@@ -528,6 +555,7 @@ void *n_scopxy_new(t_floatarg f)
       x->ch[i].x = NULL;
       x->ch[i].y = NULL;
     }
+  init_gi(&x->gi);
   return (x);
 }
 
@@ -551,7 +579,7 @@ void n_scopxy_tilde_setup(void)
   class_addmethod(n_scopxy_class, nullfn, gensym("signal"), 0);
   class_addmethod(n_scopxy_class, (t_method)n_scopxy_dsp, gensym("dsp"), 0);
   class_addmethod(n_scopxy_class, (t_method)n_scopxy_set, gensym("set"), A_DEFFLOAT, A_DEFFLOAT, A_DEFFLOAT, A_DEFFLOAT, 0);
-  class_addmethod(n_scopxy_class, (t_method)n_scopxy_info, gensym("info"), 0);
+  class_addmethod(n_scopxy_class, (t_method)n_scopxy_outlet_gi, gensym("gi"), 0);
   class_addmethod(n_scopxy_class, (t_method)n_scopxy_window, gensym("window"), A_DEFFLOAT, 0);
   class_addmethod(n_scopxy_class, (t_method)n_scopxy_on, gensym("on"), A_DEFFLOAT, 0);
   class_addmethod(n_scopxy_class, (t_method)n_scopxy_save, gensym("save"), A_SYMBOL, 0);

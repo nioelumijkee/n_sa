@@ -1,12 +1,12 @@
-#N canvas 428 71 944 641 10;
+#N canvas 458 33 944 641 10;
 #X obj 838 85 tgl 15 1 empty empty on 17 7 0 10 -262144 -1 -1 1 1;
 #N canvas 639 171 297 564 generator 0;
 #X obj -21 458 outlet~;
 #X obj -22 126 phasor~;
 #X obj 102 112 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -6 0 10
--262144 -1 -1 48 256;
+-262144 -1 -1 -38 256;
 #X obj 102 128 vradio 12 1 1 6 empty empty empty 0 -8 0 10 -262144
--1 -1 2;
+-1 -1 0;
 #X text 113 125 _sin;
 #X text 113 137 _tri;
 #X text 113 149 _saw;
@@ -104,7 +104,7 @@
 #X obj 60 364 noise~;
 #X obj -20 435 *~ 0;
 #X obj 102 236 nbx 4 14 -100 100 0 1 empty empty amp 0 -6 0 10 -262144
--1 -1 65 256;
+-1 -1 94 256;
 #X obj 102 418 * 0.01;
 #X connect 1 0 10 5;
 #X connect 1 0 11 0;
@@ -129,9 +129,9 @@
 #X obj -21 458 outlet~;
 #X obj -22 126 phasor~;
 #X obj 102 112 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -6 0 10
--262144 -1 -1 240.24 256;
+-262144 -1 -1 50.3 256;
 #X obj 102 128 vradio 12 1 1 6 empty empty empty 0 -8 0 10 -262144
--1 -1 2;
+-1 -1 3;
 #X text 113 125 _sin;
 #X text 113 137 _tri;
 #X text 113 149 _saw;
@@ -208,7 +208,7 @@
 #X connect 3 0 1 0;
 #X restore 19 314 pd saw;
 #X obj 102 211 nbx 4 14 -100 100 0 1 empty empty pw 0 -6 0 10 -262144
--1 -1 -26 256;
+-1 -1 -68 256;
 #N canvas 187 372 450 300 pls 0;
 #X obj 141 24 inlet~;
 #X obj 139 201 outlet~;
@@ -229,7 +229,7 @@
 #X obj 60 364 noise~;
 #X obj -20 435 *~ 0;
 #X obj 102 236 nbx 4 14 -100 100 0 1 empty empty amp 0 -6 0 10 -262144
--1 -1 51 256;
+-1 -1 48 256;
 #X obj 102 418 * 0.01;
 #X connect 1 0 10 5;
 #X connect 1 0 11 0;
@@ -253,12 +253,11 @@
 #X obj 838 120 s \$0-to;
 #X obj 87 294 r \$0-to;
 #X obj 569 583 s \$0-to;
-#X msg 569 563 info;
 #X obj 101 248 * 0.01;
 #X msg 838 102 on \$1;
 #X obj 80 266 +~ 0;
-#X msg 168 484 size \$1 \$2;
-#X obj 168 504 s \$0-to;
+#X msg 146 495 size \$1 \$2;
+#X obj 146 515 s \$0-to;
 #X obj 821 343 s \$0-to;
 #N canvas 222 282 533 423 rec 0;
 #X obj 102 102 tgl 17 0 empty empty rec 17 7 0 10 -261234 -1 -1 0 1
@@ -297,17 +296,16 @@
 #X connect 14 0 12 0;
 #X coords 0 -1 1 1 200 21 2 100 100;
 #X restore 709 432 pd rec;
-#X obj 81 379 route window size save, f 44;
 #X obj 81 433 tgl 15 0 empty empty window 17 7 0 10 -262144 -1 -1 1
 1;
 #X obj 81 470 s \$0-to;
 #X msg 81 450 window \$1;
 #X msg 81 413 set \$1;
-#X obj 294 423 bng 15 250 50 0 empty empty save_ok. 17 7 0 10 -204786
+#X obj 250 434 bng 15 250 50 0 empty empty save_ok. 17 7 0 10 -204786
 -4034 -1;
-#X obj 255 438 bng 15 250 50 0 empty empty save_error. 17 7 0 10 -261234
+#X obj 211 449 bng 15 250 50 0 empty empty save_error. 17 7 0 10 -261234
 -258113 -1;
-#X obj 255 403 moses 1;
+#X obj 211 414 moses 1;
 #X obj 101 230 nbx 4 14 -9999 9999 0 1 empty empty empty 52 6 0 10
 -262144 -1 -1 0 256;
 #X obj 171 248 * 0.01;
@@ -341,7 +339,7 @@
 #X obj 222 114 nbx 3 14 0 100 0 1 empty empty a 0 -8 0 10 -262144 -1
 -1 68 256;
 #X obj 258 114 nbx 3 14 0 10000 0 1 empty empty w 0 -8 0 10 -262144
--1 -1 133 256;
+-1 -1 103 256;
 #X obj 100 350 pack f f f;
 #X obj 222 279 t b f;
 #X obj 258 279 t b f;
@@ -388,19 +386,19 @@
 #X obj 136 149 << 8;
 #X obj 100 149 << 16;
 #X msg 208 243 color \$1 \$1 \$1;
-#X obj 208 114 tgl 14 0 s r empty 17 7 0 10 -2500 -2500 -2500 0 1;
+#X obj 208 114 tgl 14 0 s r empty 17 7 0 10 -4033 -4033 -4033 0 1;
 #X obj 154 226 * -1;
 #X obj 100 114 nbx 3 14 1 255 0 1 empty empty r 0 -8 0 10 -261234 -1
 -1 1 256;
 #X obj 136 114 nbx 3 14 1 255 0 1 empty empty g 0 -8 0 10 -204786 -1
--1 159 256;
+-1 255 256;
 #X obj 172 114 nbx 3 14 1 255 0 1 empty empty b 0 -8 0 10 -204800 -1
--1 16 256;
+-1 1 256;
 #X obj 100 374 outlet;
 #X obj 222 114 nbx 3 14 0 100 0 1 empty empty a 0 -8 0 10 -262144 -1
 -1 76 256;
 #X obj 258 114 nbx 3 14 0 10000 0 1 empty empty w 0 -8 0 10 -262144
--1 -1 176 256;
+-1 -1 356 256;
 #X obj 100 350 pack f f f;
 #X obj 222 279 t b f;
 #X obj 258 279 t b f;
@@ -441,17 +439,17 @@
 #X obj 136 149 << 8;
 #X obj 100 149 << 16;
 #X msg 208 243 color \$1 \$1 \$1;
-#X obj 208 114 tgl 14 0 s r empty 17 7 0 10 -1 -1 -1 0 1;
+#X obj 208 114 tgl 14 0 s r empty 17 7 0 10 -7 -7 -7 0 1;
 #X obj 154 226 * -1;
 #X obj 100 114 nbx 3 14 1 255 0 1 empty empty r 0 -8 0 10 -261234 -1
 -1 1 256;
 #X obj 136 114 nbx 3 14 1 255 0 1 empty empty g 0 -8 0 10 -204786 -1
 -1 1 256;
 #X obj 172 114 nbx 3 14 1 255 0 1 empty empty b 0 -8 0 10 -204800 -1
--1 1 256;
+-1 25 256;
 #X obj 100 374 outlet;
 #X obj 222 114 nbx 3 14 0 100 0 1 empty empty a 0 -8 0 10 -262144 -1
--1 47 256;
+-1 14 256;
 #X obj 222 279 t b f;
 #X obj 222 194 * 0.01;
 #X obj 100 350 pack f f;
@@ -488,9 +486,9 @@
 #X msg 115 79 set \$1;
 #X msg 162 79 set \$1;
 #X obj 115 102 nbx 4 14 0 9999 0 1 empty empty w -10 8 0 10 -262144
--1 -1 400 256;
+-1 -1 388 256;
 #X obj 162 102 nbx 4 14 0 9999 0 1 empty empty h 50 8 0 10 -262144
--1 -1 400 256;
+-1 -1 320 256;
 #X obj 162 59 t f f, f 13;
 #X connect 0 0 4 0;
 #X connect 2 0 1 0;
@@ -505,10 +503,10 @@
 #X connect 9 0 6 0;
 #X connect 9 1 2 1;
 #X coords 0 -1 1 1 122 18 2 100 100;
-#X restore 168 464 pd size;
-#X msg 168 527 size 200 200;
-#X msg 174 548 size 450 450;
-#X obj 168 573 s \$0-to;
+#X restore 146 475 pd size;
+#X msg 146 538 size 200 200;
+#X msg 152 559 size 450 450;
+#X obj 146 584 s \$0-to;
 #X text 375 520 Grid:;
 #X obj 709 546 s \$0-to;
 #X msg 709 494 save /run/tmp/\$1;
@@ -516,42 +514,46 @@
 #X text 260 54 simple XY-scope.;
 #X text 533 534 Get info about video:;
 #X msg 821 324 save ./screen.tga;
-#X connect 0 0 8 0;
-#X connect 1 0 9 0;
-#X connect 2 0 24 0;
-#X connect 4 0 54 0;
-#X connect 6 0 5 0;
-#X connect 7 0 9 1;
-#X connect 8 0 3 0;
-#X connect 9 0 54 0;
-#X connect 10 0 11 0;
-#X connect 13 0 53 0;
-#X connect 14 0 18 0;
-#X connect 14 1 47 0;
-#X connect 14 2 21 0;
-#X connect 15 0 17 0;
-#X connect 17 0 16 0;
-#X connect 18 0 15 0;
-#X connect 21 0 20 0;
-#X connect 21 1 19 0;
-#X connect 22 0 7 0;
-#X connect 23 0 24 1;
-#X connect 24 0 54 1;
-#X connect 25 0 23 0;
-#X connect 28 0 30 0;
-#X connect 30 0 29 0;
-#X connect 31 0 45 0;
-#X connect 37 0 12 0;
-#X connect 39 0 12 0;
-#X connect 40 0 42 0;
-#X connect 42 0 41 0;
-#X connect 43 0 46 0;
-#X connect 45 0 32 0;
-#X connect 46 0 44 0;
-#X connect 47 0 10 0;
-#X connect 48 0 50 0;
-#X connect 49 0 50 0;
-#X connect 53 0 52 0;
-#X connect 54 0 14 0;
-#X connect 57 0 12 0;
+#X msg 569 563 gi;
+#X obj 81 379 route window size save gi, f 44;
+#X obj 276 406 print -n;
+#X connect 0 0 7 0;
+#X connect 1 0 8 0;
+#X connect 2 0 22 0;
+#X connect 4 0 52 0;
+#X connect 6 0 8 1;
+#X connect 7 0 3 0;
+#X connect 8 0 52 0;
+#X connect 9 0 10 0;
+#X connect 12 0 51 0;
+#X connect 13 0 15 0;
+#X connect 15 0 14 0;
+#X connect 16 0 13 0;
+#X connect 19 0 18 0;
+#X connect 19 1 17 0;
+#X connect 20 0 6 0;
+#X connect 21 0 22 1;
+#X connect 22 0 52 1;
+#X connect 23 0 21 0;
+#X connect 26 0 28 0;
+#X connect 28 0 27 0;
+#X connect 29 0 43 0;
+#X connect 35 0 11 0;
+#X connect 37 0 11 0;
+#X connect 38 0 40 0;
+#X connect 40 0 39 0;
+#X connect 41 0 44 0;
+#X connect 43 0 30 0;
+#X connect 44 0 42 0;
+#X connect 45 0 9 0;
+#X connect 46 0 48 0;
+#X connect 47 0 48 0;
+#X connect 51 0 50 0;
+#X connect 52 0 57 0;
+#X connect 55 0 11 0;
+#X connect 56 0 5 0;
+#X connect 57 0 16 0;
+#X connect 57 1 45 0;
+#X connect 57 2 19 0;
+#X connect 57 3 58 0;
 #X coords 0 641 1 640 85 60 0;
