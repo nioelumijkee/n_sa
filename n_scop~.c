@@ -1,4 +1,3 @@
-/* (C) Nioelumijke 2019 */
 #include <stdlib.h>
 #include <SDL/SDL.h>
 #include "m_pd.h"
@@ -13,15 +12,15 @@
 #define A_MAX_SS 100000
 #define AC_2PI 6.2831853
 
-#define AF_CLIP_MINMAX(MIN, MAX, IN) \
-  if ((IN) < (MIN))		     \
-    (IN) = (MIN);		     \
-  else if ((IN) > (MAX))	     \
-    (IN) = (MAX);
+#define AF_CLIP_MINMAX(MIN, MAX, IN)            \
+  if ((IN) < (MIN))      (IN) = (MIN);          \
+  else if ((IN) > (MAX)) (IN) = (MAX);
 
 #define AF_CLIP_MIN(MIN, IN) \
-  if ((IN) < (MIN))	     \
-    (IN) = (MIN);
+  if ((IN) < (MIN))	     (IN) = (MIN);
+
+#define AF_CLIP_MAX(MAX, IN) \
+  if ((IN) < (MAX))	     (IN) = (MAX);
 
 
 
