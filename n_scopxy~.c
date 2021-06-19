@@ -4,7 +4,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include "m_pd.h"
-#include "gi.c"
+#include "include/gi.c"
 
 #define AF_CLIP_MINMAX(MIN, MAX, IN)            \
   if      ((IN) < (MIN))  (IN) = (MIN);         \

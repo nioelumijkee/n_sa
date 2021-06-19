@@ -10,7 +10,6 @@ LIBRARY_VERSION = "0.1"
 META_FILE = $(LIBRARY_NAME)-meta.pd
 SOURCES = \
 n_scopxy~.c
-META_FILE = $(LIBRARY_NAME)-meta.pd
 LIBS = -lSDL2 -lGL -lGLU
 
 #------------------------------------------------------------------------------#
