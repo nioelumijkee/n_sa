@@ -550,7 +550,7 @@ void *n_scopxy_new(t_floatarg f)
   x->window_h = 400;
   x->fullscreen = 0;
   x->t = clock_new(x, (t_method)n_scopxy_events);
-  for (int i = 0; i < x->channel; i++)
+  for (i = 0; i < x->channel; i++)
     {
       x->ch[i].x = NULL;
       x->ch[i].y = NULL;

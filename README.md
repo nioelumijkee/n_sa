@@ -1,2 +1,4 @@
-# n_scopxy~
-### simple multiwave XY-scope.
+n_scopxy~
+---------
+
+Simple multiwave XY-scope.
