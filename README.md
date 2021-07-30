@@ -1,2 +1,4 @@
-# n_scop~
-### simple multiwave oscilloscope.
+n_scop~
+-------
+
+Simple multiwave oscilloscope.
