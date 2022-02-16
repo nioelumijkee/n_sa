@@ -1,12 +1,12 @@
 ################################################################################
-lib.name = n_scop
+lib.name = n_sa
 cflags = 
 ldlibs = -lSDL
-class.sources = n_scop~.c
+class.sources = n_sa~.c
 sources = 
 datafiles = \
-n_scop~-help.pd \
-n_scop~-meta.pd \
+n_sa~-help.pd \
+n_sa~-meta.pd \
 README.md \
 LICENSE.txt
 

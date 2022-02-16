@@ -1,4 +1,4 @@
-n_scop~
+n_sa~
 -------
 
-Simple multiwave oscilloscope.
+Signal analysis tool.
