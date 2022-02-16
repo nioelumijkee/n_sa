@@ -1,4 +1,4 @@
-#N canvas 35 25 1300 687 10;
+#N canvas 30 16 1300 687 10;
 #X obj 455 7 cnv 15 200 400 empty empty scope 20 12 0 12 #bbbbbb #000000
 0;
 #X obj 658 7 cnv 15 200 400 empty empty spectr 20 12 0 12 #bbbbbb #000000
@@ -259,7 +259,7 @@
 #X connect 12 0 0 0;
 #X coords 0 -1 1 1 123 15 2 100 100;
 #X restore 345 537 pd color;
-#X obj 9 6 cnv 15 240 70 empty empty n_scop~ 20 12 0 12 #bbbbbb #000000
+#X obj 9 6 cnv 15 240 70 empty empty n_sa~ 20 12 0 12 #bbbbbb #000000
 0;
 #N canvas 615 96 358 498 gen 0;
 #X obj 126 432 outlet~;
@@ -874,13 +874,13 @@
 #X connect 23 0 17 0;
 #X coords 0 -1 1 1 54 224 1 100 100;
 #X restore 178 80 pd gen;
-#X obj 17 337 n_scop~ 4, f 27;
 #X text 28 359 argument: amount_channels;
 #X obj 17 382 s \$0-from;
 #X obj 1104 11 r \$0-from;
 #X obj 1104 31 route window;
 #X msg 1104 51 set \$1;
-#X text 80 34 Description.;
+#X obj 17 337 n_sa~ 4, f 27;
+#X text 54 36 Signal Analysis tool.;
 #X connect 4 0 5 0;
 #X connect 5 0 16 0;
 #X connect 6 0 9 0;
@@ -926,13 +926,13 @@
 #X connect 72 0 51 0;
 #X connect 73 0 55 0;
 #X connect 74 0 70 0;
-#X connect 76 0 81 0;
-#X connect 77 0 81 0;
-#X connect 78 0 81 1;
-#X connect 79 0 81 2;
-#X connect 80 0 81 3;
-#X connect 81 0 83 0;
+#X connect 76 0 86 0;
+#X connect 77 0 86 0;
+#X connect 78 0 86 1;
+#X connect 79 0 86 2;
+#X connect 80 0 86 3;
+#X connect 83 0 84 0;
 #X connect 84 0 85 0;
-#X connect 85 0 86 0;
-#X connect 86 0 17 0;
+#X connect 85 0 17 0;
+#X connect 86 0 82 0;
 #X coords 0 687 1 686 85 60 0;

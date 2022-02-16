@@ -25,10 +25,9 @@
   if ((IN) < (MAX))          (IN) = (MAX);
 
 
+static t_class *n_sa_class;
 
-static t_class *n_scop_class;
-
-typedef struct _n_scop_channel
+typedef struct _n_sa_channel
 {
   int on;
   float amp;
@@ -41,9 +40,9 @@ typedef struct _n_scop_channel
   float *buf;
   float *buf_max;
   float *buf_min;
-} t_n_scop_channel;
+} t_n_sa_channel;
 
-typedef struct _n_scop
+typedef struct _n_sa
 {
   t_object x_obj;
   t_outlet *x_out;
@@ -87,11 +86,11 @@ typedef struct _n_scop
   SDL_Surface *win_screen;
   Uint32 *win_p;
   int win_ofs;
-  struct _n_scop_channel ch[A_MAX_CHANNEL];
-} t_n_scop;
+  struct _n_sa_channel ch[A_MAX_CHANNEL];
+} t_n_sa;
 
 //----------------------------------------------------------------------------//
-void n_scop_calc_wh(t_n_scop *x)
+void n_sa_calc_wh(t_n_sa *x)
 {
   x->width = x->p_width;
   x->win_w = x->p_width;
@@ -99,7 +98,7 @@ void n_scop_calc_wh(t_n_scop *x)
 }
 
 //----------------------------------------------------------------------------//
-void n_scop_calc_ch(t_n_scop *x)
+void n_sa_calc_ch(t_n_sa *x)
 {
   int i, j;
   j = 0;
@@ -138,7 +137,7 @@ void n_scop_calc_ch(t_n_scop *x)
 }
 
 //----------------------------------------------------------------------------//
-void n_scop_color_rgb(t_n_scop *x, int color, Uint32 *rgb_color)
+void n_sa_color_rgb(t_n_sa *x, int color, Uint32 *rgb_color)
 {
   Uint8 r, g, b;
   b = color;
@@ -148,18 +147,18 @@ void n_scop_color_rgb(t_n_scop *x, int color, Uint32 *rgb_color)
 }
 
 //----------------------------------------------------------------------------//
-void n_scop_color_all(t_n_scop *x)
+void n_sa_color_all(t_n_sa *x)
 {
   int i;
-  n_scop_color_rgb(x, x->p_color_back, &x->rgb_color_back);
-  n_scop_color_rgb(x, x->p_color_grid, &x->rgb_color_grid);
-  n_scop_color_rgb(x, x->p_color_grid_low, &x->rgb_color_grid_low);
+  n_sa_color_rgb(x, x->p_color_back, &x->rgb_color_back);
+  n_sa_color_rgb(x, x->p_color_grid, &x->rgb_color_grid);
+  n_sa_color_rgb(x, x->p_color_grid_low, &x->rgb_color_grid_low);
   for (i = 0; i < A_MAX_CHANNEL; i++)
-    n_scop_color_rgb(x, x->ch[i].color, &x->ch[i].rgb_color);
+    n_sa_color_rgb(x, x->ch[i].color, &x->ch[i].rgb_color);
 }
 
 //----------------------------------------------------------------------------//
-void n_scop_calc_display(t_n_scop *x, int ch)
+void n_sa_calc_display(t_n_sa *x, int ch)
 {
   int i, j, x0, x1;
   float min, max;
@@ -185,14 +184,14 @@ void n_scop_calc_display(t_n_scop *x, int ch)
 }
 
 //----------------------------------------------------------------------------//
-void n_scop_calc_constant(t_n_scop *x)
+void n_sa_calc_constant(t_n_sa *x)
 {
   x->dc_f = A_DC_F * (AC_2PI / (float)x->sr);
   x->s_count_redraw_max = x->sr / A_FPS;
 }
 
 //----------------------------------------------------------------------------//
-void n_scop_redraw_display(t_n_scop *x)
+void n_sa_redraw_display(t_n_sa *x)
 {
   int i, ch, y, y0, y1, yz0, yz1;
   Uint32 *bufp;
@@ -275,7 +274,7 @@ void n_scop_redraw_display(t_n_scop *x)
 }
 
 //----------------------------------------------------------------------------//
-void n_scop_reset(t_n_scop *x)
+void n_sa_reset(t_n_sa *x)
 {
   x->s_record = 0;
   x->s_find = 0;
@@ -285,7 +284,7 @@ void n_scop_reset(t_n_scop *x)
 }
 
 //----------------------------------------------------------------------------//
-void n_scop_calc_time(t_n_scop *x)
+void n_sa_calc_time(t_n_sa *x)
 {
   // ms
   if (x->p_ms_smpl == 0)
@@ -299,9 +298,9 @@ void n_scop_calc_time(t_n_scop *x)
 }
 
 //----------------------------------------------------------------------------//
-t_int *n_scop_perform(t_int *w)
+t_int *n_sa_perform(t_int *w)
 {
-  t_n_scop *x = (t_n_scop *)(w[1]);
+  t_n_sa *x = (t_n_sa *)(w[1]);
   int n = (int)(w[2]);
   t_float **in = getbytes(sizeof(float) * (x->channel));
   int i, j;
@@ -374,8 +373,8 @@ t_int *n_scop_perform(t_int *w)
 		  for (i = 0; i < x->channel; i++)
 		    {
 		      if (x->ch[i].on)
-			n_scop_calc_display(x, i);
-		      n_scop_redraw_display(x);
+			n_sa_calc_display(x, i);
+		      n_sa_redraw_display(x);
 		    }
 		}
 	    }
@@ -385,7 +384,7 @@ t_int *n_scop_perform(t_int *w)
 }
 
 //----------------------------------------------------------------------------//
-static void n_scop_dsp(t_n_scop *x, t_signal **sp)
+static void n_sa_dsp(t_n_sa *x, t_signal **sp)
 {
   int i;
   t_int **vec = getbytes(sizeof(t_int) * (x->channel + 2));
@@ -393,17 +392,17 @@ static void n_scop_dsp(t_n_scop *x, t_signal **sp)
   vec[1] = (t_int *)sp[0]->s_n;
   for (i = 0; i < x->channel; i++)
     vec[i + 2] = (t_int *)sp[i]->s_vec;
-  dsp_addv(n_scop_perform, x->channel + 2, (t_int *)vec);
+  dsp_addv(n_sa_perform, x->channel + 2, (t_int *)vec);
   freebytes(vec, sizeof(t_int) * (x->channel + 2));
   //
   x->sr = sp[0]->s_sr;
-  n_scop_calc_time(x);
-  n_scop_calc_constant(x);
-  n_scop_reset(x);
+  n_sa_calc_time(x);
+  n_sa_calc_constant(x);
+  n_sa_reset(x);
 }
 
 //----------------------------------------------------------------------------//
-void n_scop_window(t_n_scop *x)
+void n_sa_window(t_n_sa *x)
 {
   // sdl init
   if (x->p_window)
@@ -419,12 +418,12 @@ void n_scop_window(t_n_scop *x)
 	  else
 	    {
 	      // name window
-	      SDL_WM_SetCaption("n_scop~", NULL);
+	      SDL_WM_SetCaption("n_sa~", NULL);
 	      // offset
 	      x->win_p = (Uint32 *)x->win_screen->pixels;
 	      x->win_ofs = x->win_screen->pitch / 4;
 	      // colors
-	      n_scop_color_all(x);
+	      n_sa_color_all(x);
 	    }
 	}
     }
@@ -436,7 +435,7 @@ void n_scop_window(t_n_scop *x)
 }
 
 //----------------------------------------------------------------------------//
-static void n_scop_set(t_n_scop *x, t_floatarg ch, t_floatarg par, t_floatarg val)
+static void n_sa_set(t_n_sa *x, t_floatarg ch, t_floatarg par, t_floatarg val)
 {
   if (ch == -1)
     {
@@ -465,14 +464,14 @@ static void n_scop_set(t_n_scop *x, t_floatarg ch, t_floatarg par, t_floatarg va
 	{
 	  x->p_time = val;
 	  AF_CLIP_MIN(1, x->p_time)
-	    n_scop_calc_time(x);
-	  n_scop_reset(x);
+	    n_sa_calc_time(x);
+	  n_sa_reset(x);
 	}
       else if (par == 6)
 	{
 	  x->p_ms_smpl = val;
-	  n_scop_calc_time(x);
-	  n_scop_reset(x);
+	  n_sa_calc_time(x);
+	  n_sa_reset(x);
 	}
       else if (par == 7)
 	{
@@ -488,34 +487,34 @@ static void n_scop_set(t_n_scop *x, t_floatarg ch, t_floatarg par, t_floatarg va
 	{
 	  x->p_color_back = val * -1;
 	  if (x->p_window)
-	    n_scop_color_all(x);
+	    n_sa_color_all(x);
 	}
       else if (par == 10)
 	{
 	  x->p_color_grid = val * -1;
 	  if (x->p_window)
-	    n_scop_color_all(x);
+	    n_sa_color_all(x);
 	}
       else if (par == 11)
 	{
 	  x->p_color_grid_low = val * -1;
 	  if (x->p_window)
-	    n_scop_color_all(x);
+	    n_sa_color_all(x);
 	}
       else if (par == 12)
 	{
 	  x->p_window = val;
-	  n_scop_calc_wh(x);
-	  n_scop_calc_ch(x);
-	  n_scop_calc_time(x);
-	  n_scop_reset(x);
-	  n_scop_window(x);
+	  n_sa_calc_wh(x);
+	  n_sa_calc_ch(x);
+	  n_sa_calc_time(x);
+	  n_sa_reset(x);
+	  n_sa_window(x);
 	}
       else if (par == 13)
 	{
 	  x->p_separate = val;
 	  if (x->p_window)
-	    n_scop_calc_ch(x);
+	    n_sa_calc_ch(x);
 	}
       else if (par == 14)
 	{
@@ -528,7 +527,7 @@ static void n_scop_set(t_n_scop *x, t_floatarg ch, t_floatarg par, t_floatarg va
 	{
 	  x->ch[(int)ch].on = val;
 	  if (x->p_window)
-	    n_scop_calc_ch(x);
+	    n_sa_calc_ch(x);
 	}
       else if (par == 1)
 	{
@@ -538,15 +537,15 @@ static void n_scop_set(t_n_scop *x, t_floatarg ch, t_floatarg par, t_floatarg va
 	{
 	  x->ch[(int)ch].color = val * -1;
 	  if (x->p_window)
-	    n_scop_color_all(x);
+	    n_sa_color_all(x);
 	}
     }
 }
 
 //----------------------------------------------------------------------------//
-static void *n_scop_new(t_floatarg f)
+static void *n_sa_new(t_floatarg f)
 {
-  t_n_scop *x = (t_n_scop *)pd_new(n_scop_class);
+  t_n_sa *x = (t_n_sa *)pd_new(n_sa_class);
   int i;
   x->channel = f;
   AF_CLIP_MINMAX(1, A_MAX_CHANNEL, x->channel);
@@ -560,7 +559,7 @@ static void *n_scop_new(t_floatarg f)
       if (((x->ch[i].buf = malloc(sizeof(float) * A_MAX_SS)) == NULL) ||
 	  ((x->ch[i].buf_max = malloc(sizeof(float) * A_MAX_WIDTH)) == NULL) ||
 	  ((x->ch[i].buf_min = malloc(sizeof(float) * A_MAX_WIDTH)) == NULL))
-	post("n_scop : error allocating memory");
+	post("n_sa : error allocating memory");
     }
   // create inlets
   for (i = 0; i < x->channel - 1; i++)
@@ -575,12 +574,12 @@ static void *n_scop_new(t_floatarg f)
 // input methods
 //----------------------------------------------------------------------------//
 //----------------------------------------------------------------------------//
-static void n_scop_input_window(t_n_scop *x, t_floatarg f)
+static void n_sa_input_window(t_n_sa *x, t_floatarg f)
 {
 }
 
 //----------------------------------------------------------------------------//
-static void n_scop_free(t_n_scop *x)
+static void n_sa_free(t_n_sa *x)
 {
   int i;
   for (i = 0; i < x->channel; i++)
@@ -594,11 +593,11 @@ static void n_scop_free(t_n_scop *x)
 }
 
 //----------------------------------------------------------------------------//
-void n_scop_tilde_setup(void)
+void n_sa_tilde_setup(void)
 {
-  n_scop_class = class_new(gensym("n_scop~"), (t_newmethod)n_scop_new, (t_method)n_scop_free, sizeof(t_n_scop), 0, A_DEFFLOAT, 0);
-  class_addmethod(n_scop_class, nullfn, gensym("signal"), 0);
-  class_addmethod(n_scop_class, (t_method)n_scop_dsp, gensym("dsp"), 0);
-  /* class_addmethod(n_scop_class, (t_method)n_scop_set, gensym("set"), A_DEFFLOAT, A_DEFFLOAT, A_DEFFLOAT, 0); */
-  class_addmethod(n_scop_class, (t_method)n_scop_input_window, gensym("window"), A_DEFFLOAT, 0);
+  n_sa_class = class_new(gensym("n_sa~"), (t_newmethod)n_sa_new, (t_method)n_sa_free, sizeof(t_n_sa), 0, A_DEFFLOAT, 0);
+  class_addmethod(n_sa_class, nullfn, gensym("signal"), 0);
+  class_addmethod(n_sa_class, (t_method)n_sa_dsp, gensym("dsp"), 0);
+  /* class_addmethod(n_sa_class, (t_method)n_sa_set, gensym("set"), A_DEFFLOAT, A_DEFFLOAT, A_DEFFLOAT, 0); */
+  class_addmethod(n_sa_class, (t_method)n_sa_input_window, gensym("window"), A_DEFFLOAT, 0);
 }
