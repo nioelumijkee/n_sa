@@ -1,603 +1,447 @@
-/* n_sa - signal analysis tool */
+/* n_sa - signal analysis tool
 
+   Structure this file:
+   - init
+   - display
+   - scope
+   - spectr
+   - input methods
+   - dsp
+   - setup
+
+*/
 #include <stdlib.h>
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
 #include "m_pd.h"
 
-#define A_MAX_CHANNEL 16
-#define A_MIN_WIDTH 100
-#define A_MAX_WIDTH 1024
-#define A_MIN_HEIGHT 100
-#define A_MAX_HEIGHT 1024
-#define A_DC_F 20.
-#define A_FPS 22
-#define A_MAX_SS 100000
-#define AC_2PI 6.2831853
+#define MAX_CHANNEL 16
+#define MIN_HEIGHT 100
+#define MAX_HEIGHT 1024
+#define MIN_WIDTH_SCOPE 1
+#define MAX_WIDTH_SCOPE 1024
+#define MIN_WIDTH_SPECTR 1
+#define MAX_WIDTH_SPECTR 1024
+#define WIDTH_SPLIT 4
 
-#define AF_CLIP_MINMAX(MIN, MAX, IN)            \
-  if ((IN) < (MIN))      (IN) = (MIN);          \
+#define CLIP_MINMAX(MIN, MAX, IN)		\
+  if      ((IN) < (MIN)) (IN) = (MIN);          \
   else if ((IN) > (MAX)) (IN) = (MAX);
 
-#define AF_CLIP_MIN(MIN, IN)                    \
-  if ((IN) < (MIN))          (IN) = (MIN);
+#define CLIP_MIN(MIN, IN)			\
+  if ((IN) < (MIN))      (IN) = (MIN);
 
-#define AF_CLIP_MAX(MAX, IN)                    \
-  if ((IN) < (MAX))          (IN) = (MAX);
+#define CLIP_MAX(MAX, IN)			\
+  if ((IN) < (MAX))      (IN) = (MAX);
 
 
 static t_class *n_sa_class;
 
 typedef struct _n_sa_channel
 {
-  int on;
-  float amp;
-  int color;
-  Uint32 rgb_color;
-  int center;
-  int grid_hor_low;
-  int max_z;
-  int min_z;
-  float *buf;
-  float *buf_max;
-  float *buf_min;
 } t_n_sa_channel;
 
 typedef struct _n_sa
 {
-  t_object x_obj;
+  t_object x_obj; /* pd */
   t_outlet *x_out;
-  int p_on;
-  int p_sync_dc;
-  int p_sync_ch;
-  float p_sync_treshold;
-  int p_sync;
-  float p_time;
-  int p_ms_smpl;
-  int p_width;
-  int p_height;
-  int p_color_back;
-  int p_color_grid;
-  int p_color_grid_low;
-  int p_window;
-  int p_separate;
-  int p_grid_hor_on;
-  int sr;
-  int channel;
-  int win_w;
-  int win_h;
-  int w_height_one;
-  int w_height_half;
-  int w_last;
-  int width;
-  int t_all;
-  float t_part;
-  float dc_f;
-  float dc_z;
-  float sync_z;
-  int s_record;
-  int s_find;
-  int s_count_redraw_max;
-  int s_count_redraw;
-  int s_count_record;
-  int s_count_litl;
-  Uint32 rgb_color_back;
-  Uint32 rgb_color_grid;
-  Uint32 rgb_color_grid_low;
-  SDL_Surface *win_screen;
-  Uint32 *win_p;
-  int win_ofs;
-  struct _n_sa_channel ch[A_MAX_CHANNEL];
+  int s_n; /* blocksize */
+  t_float s_sr; /* sample rate */
+  t_int **v_d;      /* vector for dsp_addv */
+  int amount_channel; /* body */
+  t_n_sa_channel ch[MAX_CHANNEL];
+  int window; /* window open/close */
+
+  /* real */
+  int window_ox;
+  int window_oy;
+  int window_w;
+  int window_h;
+  int scope_w;
+  int spectr_w;
+  /* input */
+  int i_window_ox;
+  int i_window_oy;
+  int i_window_w;
+  int i_window_h;
+  int i_scope_w;
+  int i_spectr_w;
+
+  int window_moved;
+  int window_size_changed;
+
+
+  Uint32 color_back; /* colors */
+  Uint32 color_grid;
+  Uint32 color_grid_low;
+  SDL_Window *win;  /* win */
+  SDL_Surface *surface; /* sdl */
+  int offset;
+  SDL_Event event;
+  t_clock *cl;  /* clock */
+  int cl_time;
+  t_symbol *s_window;
+  t_symbol *s_window_ox;
+  t_symbol *s_window_oy;
+  t_symbol *s_window_w;
+  t_symbol *s_window_h;
+  t_symbol *s_scope_w;
+  t_symbol *s_spectr_w;
 } t_n_sa;
 
-//----------------------------------------------------------------------------//
-void n_sa_calc_wh(t_n_sa *x)
-{
-  x->width = x->p_width;
-  x->win_w = x->p_width;
-  x->win_h = x->p_height;
-}
+
+
+
 
 //----------------------------------------------------------------------------//
-void n_sa_calc_ch(t_n_sa *x)
-{
-  int i, j;
-  j = 0;
-  // all channel's
-  for (i = 0; i < x->channel; i++)
-    {
-      if (x->ch[i].on)
-	j++;
-    }
-  // no separate
-  if (x->p_separate == 0 || j < 2)
-    {
-      x->w_height_one = x->win_h;
-      x->w_height_half = x->win_h / 2;
-      for (i = 0; i < x->channel; i++)
-	x->ch[i].center = x->w_height_half;
-      x->w_last = 0;
-    }
-  // separate
-  else
-    {
-      x->w_height_one = x->win_h / j;
-      x->w_height_half = x->w_height_one / 2;
-      j = 0;
-      for (i = 0; i < x->channel; i++)
-	{
-	  if (x->ch[i].on)
-	    {
-	      x->ch[i].center = x->w_height_one * (j + 0.5);
-	      x->ch[i].grid_hor_low = x->w_height_one * (j + 1);
-	      x->w_last = i;
-	      j++;
-	    }
-	}
-    }
-}
-
+// init
 //----------------------------------------------------------------------------//
-void n_sa_color_rgb(t_n_sa *x, int color, Uint32 *rgb_color)
+void n_sa_init(t_n_sa *x)
 {
-  Uint8 r, g, b;
-  b = color;
-  g = color >> 8;
-  r = color >> 16;
-  *rgb_color = SDL_MapRGB(x->win_screen->format, r, g, b);
-}
-
-//----------------------------------------------------------------------------//
-void n_sa_color_all(t_n_sa *x)
-{
-  int i;
-  n_sa_color_rgb(x, x->p_color_back, &x->rgb_color_back);
-  n_sa_color_rgb(x, x->p_color_grid, &x->rgb_color_grid);
-  n_sa_color_rgb(x, x->p_color_grid_low, &x->rgb_color_grid_low);
-  for (i = 0; i < A_MAX_CHANNEL; i++)
-    n_sa_color_rgb(x, x->ch[i].color, &x->ch[i].rgb_color);
-}
-
-//----------------------------------------------------------------------------//
-void n_sa_calc_display(t_n_sa *x, int ch)
-{
-  int i, j, x0, x1;
-  float min, max;
-  float count;
-  count = 0;
-  for (i = 0; i < x->width; i++)
-    {
-      x0 = count;
-      count += x->t_part;
-      x1 = count - 1;
-      max = x->ch[ch].buf[x0];
-      min = x->ch[ch].buf[x0];
-      for (j = x0 + 1; j < x1; j++)
-	{
-	  if (max < x->ch[ch].buf[j])
-	    max = x->ch[ch].buf[j];
-	  if (min > x->ch[ch].buf[j])
-	    min = x->ch[ch].buf[j];
-	}
-      x->ch[ch].buf_max[i] = max;
-      x->ch[ch].buf_min[i] = min;
-    }
+  x->s_n = 64;
+  x->s_sr = 44100;
+  x->window = 0;
+  x->i_window_h = 200;
+  x->i_scope_w = 200;
+  x->i_spectr_w = 200;
 }
 
 //----------------------------------------------------------------------------//
 void n_sa_calc_constant(t_n_sa *x)
 {
-  x->dc_f = A_DC_F * (AC_2PI / (float)x->sr);
-  x->s_count_redraw_max = x->sr / A_FPS;
+  if (x) {}
 }
 
 //----------------------------------------------------------------------------//
-void n_sa_redraw_display(t_n_sa *x)
+// output
+//----------------------------------------------------------------------------//
+void n_sa_output_v1(t_n_sa *x, t_symbol *s, int v)
 {
-  int i, ch, y, y0, y1, yz0, yz1;
-  Uint32 *bufp;
-  Uint32 *p;
-  if (x->p_window)
+  t_atom a[1];
+  SETFLOAT(a, (t_float)v);
+  outlet_anything(x->x_out, s, 1, a);
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_output_v2(t_n_sa *x, t_symbol *s, int v1, int v2)
+{
+  t_atom a[2];
+  SETFLOAT(a, (t_float)v1);
+  SETFLOAT(a+1, (t_float)v2);
+  outlet_anything(x->x_out, s, 2, a);
+}
+
+//----------------------------------------------------------------------------//
+// display
+//----------------------------------------------------------------------------//
+void n_sa_sdl_init_window(t_n_sa *x)
+{
+  x->window_ox = x->i_window_ox;
+  x->window_oy = x->i_window_oy;
+  x->window_h = x->i_window_h;
+  x->window_w = x->i_scope_w + WIDTH_SPLIT + x->i_spectr_w;
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_calc_size_window(t_n_sa *x)
+{
+  x->window_h = x->i_window_h;
+  x->window_w = x->i_scope_w + WIDTH_SPLIT + x->i_spectr_w;
+}
+
+
+//----------------------------------------------------------------------------//
+void n_sa_reshape(t_n_sa *x)
+{
+  post("RESHAPE");
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_redraw(t_n_sa *x)
+{
+  post("REDRAW");
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_sdl_window(t_n_sa *x)
+{
+  if (x->window)
     {
-      // clear
-      for (y = 0; y < x->win_h; y++)
+      if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
 	{
-	  p = x->win_p + (y * x->win_ofs);
-	  for (i = 0; i < x->win_w; i++)
-	    {
-	      bufp = p + i;
-	      *bufp = x->rgb_color_back;
-	    }
+	  post("error: n_sa~: SDL_Init: %s",SDL_GetError()); 
 	}
-      // grid vert
-      // one channel
-      for (ch = 0; ch < x->channel; ch++)
+      x->win = SDL_CreateWindow("n_sa~",
+				x->window_ox,
+				x->window_oy,
+				x->window_w,
+				x->window_h,
+				SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+      if (x->win == NULL)
 	{
-	  if (x->ch[ch].on)
-	    {
-	      // start pos
-	      x->ch[ch].max_z = -999999999;
-	      x->ch[ch].min_z = 999999999;
-	      // grid hor
-	      if (x->p_grid_hor_on)
-		{
-		  // draw center
-		  p = x->win_p + (x->ch[ch].center * x->win_ofs);
-		  for (i = 0; i < x->win_w; i++)
-		    {
-		      bufp = p + i;
-		      *bufp = x->rgb_color_grid;
-		    }
-		  // draw low
-		  if (ch < x->w_last)
-		    {
-		      p = x->win_p + (x->ch[ch].grid_hor_low * x->win_ofs);
-		      for (i = 0; i < x->win_w; i++)
-			{
-			  bufp = p + i;
-			  *bufp = x->rgb_color_grid_low;
-			}
-		    }
-		}
-	      // wave
-	      for (i = 0; i < x->win_w; i++)
-		{
-		  // p
-		  p = x->win_p + i;
-		  // point y0 y1
-		  yz0 = x->ch[ch].center - (x->ch[ch].buf_max[i] * x->w_height_half);
-		  yz1 = yz0 + ((x->ch[ch].buf_max[i] - x->ch[ch].buf_min[i]) * x->w_height_half);
-		  if (x->ch[ch].max_z >= yz1)
-		    y1 = x->ch[ch].max_z + 1;
-		  else
-		    y1 = yz1 + 1;
-		  if (x->ch[ch].min_z <= yz0)
-		    y0 = x->ch[ch].min_z;
-		  else
-		    y0 = yz0;
-		  // z
-		  x->ch[ch].max_z = yz0;
-		  x->ch[ch].min_z = yz1;
-		  // clip
-		  AF_CLIP_MINMAX(0, x->win_h, y0)
-		    AF_CLIP_MINMAX(0, x->win_h, y1)
-		    // draw
-		    for (y = y0; y < y1; y++)
-		      {
-			bufp = p + (y * x->win_ofs);
-			*bufp = x->ch[ch].color;
-		      }
-		}
-	    }
+	  post("error: n_sa~: SDL_CreateWindow: %s",SDL_GetError()); 
 	}
-      SDL_UpdateRect(x->win_screen, 0, 0, 0, 0);
+      clock_delay(x->cl, x->cl_time);
+    }
+  else
+    {
+      clock_unset(x->cl);
+      SDL_Quit();
     }
 }
 
 //----------------------------------------------------------------------------//
-void n_sa_reset(t_n_sa *x)
+void n_sa_sdl_get_surface(t_n_sa *x)
 {
-  x->s_record = 0;
-  x->s_find = 0;
-  x->s_count_redraw = 0;
-  x->s_count_record = 0;
-  x->s_count_litl = 0;
+  if (x->window)
+    {
+      x->surface = SDL_GetWindowSurface(x->win);
+      if (x->surface == NULL)
+	{
+	  post("error: n_sa~: SDL_GetWindowSurface: %s",SDL_GetError()); 
+	}
+      x->offset = x->surface->pitch / 4;
+    }
 }
 
 //----------------------------------------------------------------------------//
-void n_sa_calc_time(t_n_sa *x)
+void n_sa_events(t_n_sa *x)
 {
-  // ms
-  if (x->p_ms_smpl == 0)
-    x->t_all = x->p_time * x->sr * 0.001;
-  // smpl
-  else
-    x->t_all = x->p_time;
-  AF_CLIP_MINMAX(1, A_MAX_SS, x->t_all)
-    // calc
-    x->t_part = (float)x->t_all / x->width;
+  clock_delay(x->cl, x->cl_time);
+  if (x->window)
+    {
+      while (SDL_PollEvent(&x->event))
+        {
+          switch (x->event.type)
+            {
+            case SDL_WINDOWEVENT:
+              switch (x->event.window.event)
+                {
+                case SDL_WINDOWEVENT_SIZE_CHANGED:
+		  post("size_changed");
+                  x->window_w = x->event.window.data1;
+                  x->window_h = x->event.window.data2;
+                  n_sa_reshape(x);
+                  n_sa_redraw(x);
+                  break;
+                case SDL_WINDOWEVENT_RESIZED:
+		  post("resized");
+		  n_sa_output_v1(x, x->s_window_w, x->window_w); 
+		  n_sa_output_v1(x, x->s_window_h, x->window_h); 
+		  n_sa_output_v1(x, x->s_scope_w, x->scope_w); 
+		  n_sa_output_v1(x, x->s_spectr_w, x->spectr_w); 
+                  break;
+                case SDL_WINDOWEVENT_CLOSE:
+		  post("close");
+		  x->window = 0;
+                  n_sa_sdl_window(x);
+		  n_sa_output_v1(x, x->s_window, x->window); 
+                  break;
+                case SDL_WINDOWEVENT_MOVED:
+		  post("moved");
+                  x->window_ox = x->event.window.data1;
+                  x->window_oy = x->event.window.data2;
+                  x->i_window_ox = x->event.window.data1;
+                  x->i_window_oy = x->event.window.data2;
+		  n_sa_output_v1(x, x->s_window_ox, x->window_ox); 
+		  n_sa_output_v1(x, x->s_window_oy, x->window_oy); 
+                  break;
+                }
+              break;
+            case SDL_KEYDOWN:
+              switch (x->event.key.keysym.sym)
+                {
+                case SDLK_ESCAPE:
+                  post("Escape");
+                  break;
+                }
+              break;
+            }
+          break;
+        }
+    }
+
+  if (x->window && x->window_moved)
+    {
+      SDL_SetWindowPosition(x->win, x->i_window_ox, x->i_window_oy);
+      x->window_moved = 0;
+    }
+
+
+  if (x->window && x->window_size_changed)
+    {
+      /* x->gi.display_mode[0].w = x->window_w; */
+      /* x->gi.display_mode[0].h = x->window_h; */
+      /* SDL_SetWindowDisplayMode(x->win, &x->gi.display_mode[0]); */
+      n_sa_calc_size_window(x);
+      SDL_SetWindowSize(x->win, x->window_w, x->window_h);
+      n_sa_reshape(x);
+      n_sa_redraw(x);
+      /* n_sa_output_v1(x, x->s_window_w, x->window_w); */
+      /* n_sa_output_v1(x, x->s_window_h, x->window_h); */
+      /* n_sa_output_v1(x, x->s_scope_w, x->scope_w); */
+      /* n_sa_output_v1(x, x->s_spectr_w, x->spectr_w); */
+      x->window_size_changed = 0;
+    }
 }
 
+
+//----------------------------------------------------------------------------//
+// input methods
+//----------------------------------------------------------------------------//
+static void n_sa_window(t_n_sa *x, t_floatarg f)
+{
+  if (x->window != f)
+    {
+      x->window = f;
+      n_sa_sdl_init_window(x);
+      n_sa_sdl_window(x);
+      n_sa_sdl_get_surface(x);
+    }
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_window_ox(t_n_sa *x, t_floatarg f)
+{
+  x->i_window_ox = f;
+  x->window_moved = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_window_oy(t_n_sa *x, t_floatarg f)
+{
+  x->i_window_oy = f;
+  x->window_moved = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_window_h(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(MIN_HEIGHT, MAX_HEIGHT, f);
+  x->i_window_h = f;
+  x->window_size_changed = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_w(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(MIN_WIDTH_SCOPE, MAX_WIDTH_SCOPE, f);
+  x->i_scope_w = f;
+  x->window_size_changed = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_w(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(MIN_WIDTH_SPECTR, MAX_WIDTH_SPECTR, f);
+  x->i_spectr_w = f;
+  x->window_size_changed = 1;
+}
+
+//----------------------------------------------------------------------------//
+// dsp
 //----------------------------------------------------------------------------//
 t_int *n_sa_perform(t_int *w)
 {
+  int i;
   t_n_sa *x = (t_n_sa *)(w[1]);
-  int n = (int)(w[2]);
-  t_float **in = getbytes(sizeof(float) * (x->channel));
-  int i, j;
-  float sig[x->channel];
-  float sig_sync;
-  for (i = 0; i < x->channel; i++)
-    in[i] = (t_float *)(w[i + 3]);
-
-  if (x->p_on)
+  t_sample *sig[MAX_CHANNEL];  /* vector in's */
+  for (i = 0; i < x->amount_channel; i++)
     {
-      // dsp
-      while (n--)
-	{
-	  // record input
-	  sig_sync = *in[x->p_sync_ch];
-	  for (i = 0; i < x->channel; i++)
-	    sig[i] = *in[i]++ * x->ch[i].amp;
-	  // dc filter on ?
-	  if (x->p_sync_dc)
-	    {
-	      x->dc_z = (sig_sync - x->dc_z) * x->dc_f + x->dc_z;
-	      sig_sync = sig_sync - x->dc_z;
-	    }
-	  // count redraw
-	  x->s_count_redraw++;
-	  if (x->s_count_redraw > x->s_count_redraw_max)
-	    {
-	      x->s_count_redraw = 0;
-	      x->s_record = 1;
-	    }
-	  // record ?
-	  if (x->s_record)
-	    {
-	      // record
-	      if (x->s_count_record < x->t_all)
-		{
-		  // find
-		  if (x->s_find == 0 && x->p_sync > 0)
-		    {
-		      if (sig_sync > x->p_sync_treshold && x->sync_z <= x->p_sync_treshold)
-			{
-			  // find complete
-			  x->s_find = 1;
-			  x->s_count_record = 0;
-			  x->s_count_litl = 0;
-			}
-		      x->sync_z = sig_sync;
-		    }
-		  else
-		    x->s_find = 1;
-		  // record to array's
-		  if (x->s_find)
-		    {
-		      for (j = 0; j < x->channel; j++)
-			{
-			  if (x->ch[j].on)
-			    x->ch[j].buf[x->s_count_record] = sig[j];
-			}
-		      x->s_count_record++;
-		    }
-		}
-	      // stop record
-	      else
-		{
-		  x->s_record = 0;
-		  x->s_find = 0;
-		  x->s_count_record = 0;
-		  x->s_count_litl = 0;
-		  // this redraw display fuction
-		  for (i = 0; i < x->channel; i++)
-		    {
-		      if (x->ch[i].on)
-			n_sa_calc_display(x, i);
-		      n_sa_redraw_display(x);
-		    }
-		}
-	    }
-	}
+      sig[i] = (t_sample *)(w[i + 2]);
     }
-  return (w + x->channel + 3);
+  int n = x->s_n;
+
+  // dsp
+  while (n--)
+    {
+    }
+  
+  return (w + x->amount_channel + 2);
 }
 
 //----------------------------------------------------------------------------//
 static void n_sa_dsp(t_n_sa *x, t_signal **sp)
 {
   int i;
-  t_int **vec = getbytes(sizeof(t_int) * (x->channel + 2));
-  vec[0] = (t_int *)x;
-  vec[1] = (t_int *)sp[0]->s_n;
-  for (i = 0; i < x->channel; i++)
-    vec[i + 2] = (t_int *)sp[i]->s_vec;
-  dsp_addv(n_sa_perform, x->channel + 2, (t_int *)vec);
-  freebytes(vec, sizeof(t_int) * (x->channel + 2));
-  //
-  x->sr = sp[0]->s_sr;
-  n_sa_calc_time(x);
-  n_sa_calc_constant(x);
-  n_sa_reset(x);
+
+  if (sp[0]->s_n != x->s_n || sp[0]->s_sr != x->s_sr)
+    {
+      x->s_n = sp[0]->s_n;
+      x->s_sr = sp[0]->s_sr;
+      n_sa_calc_constant(x);
+    }
+
+  x->v_d[0] = (t_int *)x;
+  for (i = 0; i < x->amount_channel; i++)
+    {
+      x->v_d[i + 1] = (t_int *)sp[i]->s_vec;
+    }
+  dsp_addv(n_sa_perform, x->amount_channel + 1, (t_int *)x->v_d);
 }
 
 //----------------------------------------------------------------------------//
-void n_sa_window(t_n_sa *x)
-{
-  // sdl init
-  if (x->p_window)
-    {
-      if (SDL_Init(SDL_INIT_VIDEO) != 0)
-	post("SDL_Init error: %s", SDL_GetError());
-      else
-	{
-	  // set video mode
-	  x->win_screen = SDL_SetVideoMode(x->win_w, x->win_h, 32, SDL_ANYFORMAT);
-	  if (x->win_screen == NULL)
-	    post("SDL_SetVideoMode error: %s", SDL_GetError());
-	  else
-	    {
-	      // name window
-	      SDL_WM_SetCaption("n_sa~", NULL);
-	      // offset
-	      x->win_p = (Uint32 *)x->win_screen->pixels;
-	      x->win_ofs = x->win_screen->pitch / 4;
-	      // colors
-	      n_sa_color_all(x);
-	    }
-	}
-    }
-  // sdl quit
-  else
-    {
-      SDL_Quit();
-    }
-}
-
+// setup
 //----------------------------------------------------------------------------//
-static void n_sa_set(t_n_sa *x, t_floatarg ch, t_floatarg par, t_floatarg val)
+static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
 {
-  if (ch == -1)
-    {
-      if (par == 0)
-	{
-	  x->p_on = val;
-	}
-      else if (par == 1)
-	{
-	  x->p_sync_dc = val;
-	}
-      else if (par == 2)
-	{
-	  x->p_sync_ch = val;
-	  AF_CLIP_MINMAX(0, x->channel-1, x->p_sync_ch)
-	    }
-      else if (par == 3)
-	{
-	  x->p_sync_treshold = val;
-	}
-      else if (par == 4)
-	{
-	  x->p_sync = val;
-	}
-      else if (par == 5)
-	{
-	  x->p_time = val;
-	  AF_CLIP_MIN(1, x->p_time)
-	    n_sa_calc_time(x);
-	  n_sa_reset(x);
-	}
-      else if (par == 6)
-	{
-	  x->p_ms_smpl = val;
-	  n_sa_calc_time(x);
-	  n_sa_reset(x);
-	}
-      else if (par == 7)
-	{
-	  x->p_width = val;
-	  AF_CLIP_MINMAX(A_MIN_WIDTH, A_MAX_WIDTH, x->p_width)
-	    }
-      else if (par == 8)
-	{
-	  x->p_height = val;
-	  AF_CLIP_MINMAX(A_MIN_HEIGHT, A_MAX_HEIGHT, x->p_height)
-	    }
-      else if (par == 9)
-	{
-	  x->p_color_back = val * -1;
-	  if (x->p_window)
-	    n_sa_color_all(x);
-	}
-      else if (par == 10)
-	{
-	  x->p_color_grid = val * -1;
-	  if (x->p_window)
-	    n_sa_color_all(x);
-	}
-      else if (par == 11)
-	{
-	  x->p_color_grid_low = val * -1;
-	  if (x->p_window)
-	    n_sa_color_all(x);
-	}
-      else if (par == 12)
-	{
-	  x->p_window = val;
-	  n_sa_calc_wh(x);
-	  n_sa_calc_ch(x);
-	  n_sa_calc_time(x);
-	  n_sa_reset(x);
-	  n_sa_window(x);
-	}
-      else if (par == 13)
-	{
-	  x->p_separate = val;
-	  if (x->p_window)
-	    n_sa_calc_ch(x);
-	}
-      else if (par == 14)
-	{
-	  x->p_grid_hor_on = val;
-	}
-    }
-  else if (ch < x->channel)
-    {
-      if (par == 0)
-	{
-	  x->ch[(int)ch].on = val;
-	  if (x->p_window)
-	    n_sa_calc_ch(x);
-	}
-      else if (par == 1)
-	{
-	  x->ch[(int)ch].amp = val;
-	}
-      else if (par == 2)
-	{
-	  x->ch[(int)ch].color = val * -1;
-	  if (x->p_window)
-	    n_sa_color_all(x);
-	}
-    }
-}
-
-//----------------------------------------------------------------------------//
-static void *n_sa_new(t_floatarg f)
-{
-  t_n_sa *x = (t_n_sa *)pd_new(n_sa_class);
   int i;
-  x->channel = f;
-  AF_CLIP_MINMAX(1, A_MAX_CHANNEL, x->channel);
-  // init
-  x->sr = 44100;
-  x->p_window = 0;
-  x->width = 1;
-  // mem
-  for (i = 0; i < x->channel; i++)
-    {
-      if (((x->ch[i].buf = malloc(sizeof(float) * A_MAX_SS)) == NULL) ||
-	  ((x->ch[i].buf_max = malloc(sizeof(float) * A_MAX_WIDTH)) == NULL) ||
-	  ((x->ch[i].buf_min = malloc(sizeof(float) * A_MAX_WIDTH)) == NULL))
-	post("n_sa : error allocating memory");
-    }
+  t_n_sa *x = (t_n_sa *)pd_new(n_sa_class);
+
+  // arguments
+  x->amount_channel  = atom_getfloatarg(0,ac,av);
+  CLIP_MINMAX(1, MAX_CHANNEL, x->amount_channel);
+  
   // create inlets
-  for (i = 0; i < x->channel - 1; i++)
-    inlet_new(&x->x_obj, &x->x_obj.ob_pd, &s_signal, &s_signal);
+  for (i = 0; i < x->amount_channel - 1; i++)
+    {
+      inlet_new(&x->x_obj, &x->x_obj.ob_pd, &s_signal, &s_signal);
+    }
+
   // create outlets
   x->x_out = outlet_new(&x->x_obj, 0);
+  
+  // init
+  n_sa_init(x);
+  n_sa_calc_constant(x);
+
+  // mem
+  x->v_d = getbytes(sizeof(t_int *) *(x->amount_channel + 1));
+
+  // clock
+  x->cl_time = 2; /* default (in ms ?)*/
+  x->cl = clock_new(x, (t_method)n_sa_events);
+
+  // symbols
+  x->s_window = gensym("window");
+  x->s_window_ox = gensym("window_ox");
+  x->s_window_oy = gensym("window_oy");
+  x->s_window_w  = gensym("window_w");
+  x->s_window_h  = gensym("window_h");
+  x->s_scope_w   = gensym("scope_w");
+  x->s_spectr_w  = gensym("spectr_w");
 
   return (x);
-}
-
-//----------------------------------------------------------------------------//
-// input methods
-//----------------------------------------------------------------------------//
-//----------------------------------------------------------------------------//
-static void n_sa_input_window(t_n_sa *x, t_floatarg f)
-{
+  if (s) {};
 }
 
 //----------------------------------------------------------------------------//
 static void n_sa_free(t_n_sa *x)
 {
-  int i;
-  for (i = 0; i < x->channel; i++)
-    {
-      free(x->ch[i].buf);
-      free(x->ch[i].buf_max);
-      free(x->ch[i].buf_min);
-    }
-  if (x->p_window)
-    SDL_Quit();
+  freebytes(x->v_d, sizeof(t_int *) * (x->amount_channel + 1));
 }
 
 //----------------------------------------------------------------------------//
 void n_sa_tilde_setup(void)
 {
-  n_sa_class = class_new(gensym("n_sa~"), (t_newmethod)n_sa_new, (t_method)n_sa_free, sizeof(t_n_sa), 0, A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class, nullfn, gensym("signal"), 0);
-  class_addmethod(n_sa_class, (t_method)n_sa_dsp, gensym("dsp"), 0);
-  /* class_addmethod(n_sa_class, (t_method)n_sa_set, gensym("set"), A_DEFFLOAT, A_DEFFLOAT, A_DEFFLOAT, 0); */
-  class_addmethod(n_sa_class, (t_method)n_sa_input_window, gensym("window"), A_DEFFLOAT, 0);
+  n_sa_class = class_new(gensym("n_sa~"), (t_newmethod)n_sa_new, 
+			 (t_method)n_sa_free,
+			 sizeof(t_n_sa), 0, A_GIMME, 0);
+  class_addmethod(n_sa_class,nullfn, gensym("signal"), 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_dsp, gensym("dsp"), 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_window, gensym("window"), A_DEFFLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_window_ox, gensym("window_ox"), A_DEFFLOAT, 0); 
+  class_addmethod(n_sa_class,(t_method)n_sa_window_oy, gensym("window_oy"), A_DEFFLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_window_h, gensym("window_h"), A_DEFFLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_w, gensym("scope_w"), A_DEFFLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_spectr_w, gensym("spectr_w"), A_DEFFLOAT, 0);
 }

@@ -1,7 +1,7 @@
 ################################################################################
 lib.name = n_sa
 cflags = 
-ldlibs = -lSDL
+ldlibs = -lSDL2
 class.sources = n_sa~.c
 sources = 
 datafiles = \
