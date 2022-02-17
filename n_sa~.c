@@ -9,6 +9,23 @@
    - dsp
    - setup
 
+
++------+-+--------------------+-+---------------------------------+
+| MENU | |       SCOPE        | |            SPECTR               |
++------+ +--------------------+ +---------------------------------+
+|      | |                    | |                                 |
+|      | |                    | |                                 |
+|      | |                    | |                                 |
+|      | |                    | |                                 |
+|      | |                    | |                                 |
+|      | |                    | |                                 |
+|      | |                    | |                                 |
+|      | |                    | |                                 |
+|      | |                    | |                                 |
+|      | |                    | |                                 |
+|      | |                    | |                                 |
++------+-+--------------------+-+---------------------------------+
+
 */
 #include <stdlib.h>
 #include <SDL2/SDL.h>
@@ -21,7 +38,6 @@
 #define MAX_WIDTH_SCOPE 1024
 #define MIN_WIDTH_SPECTR 1
 #define MAX_WIDTH_SPECTR 1024
-#define WIDTH_SPLIT 4
 
 #define CLIP_MINMAX(MIN, MAX, IN)		\
   if      ((IN) < (MIN)) (IN) = (MIN);          \
@@ -52,23 +68,33 @@ typedef struct _n_sa
   int window; /* window open/close */
 
   /* real */
+  int window_w_min;
+  int window_h_min;
   int window_ox;
   int window_oy;
   int window_w;
   int window_h;
+  int menu_w;
+  int split_w;
   int scope_w;
   int spectr_w;
+  int menu_view;
+  int scope_view;
+  int spectr_view;
+
   /* input */
-  int i_window_ox;
-  int i_window_oy;
-  int i_window_w;
-  int i_window_h;
-  int i_scope_w;
-  int i_spectr_w;
+  /* int i_window_ox; */
+  /* int i_window_oy; */
+  /* int i_window_w; */
+  /* int i_window_h; */
+  /* int i_scope_w; */
+  /* int i_spectr_w; */
+  /* int i_menu_view; */
+  /* int i_scope_view; */
+  /* int i_spectr_view; */
 
   int window_moved;
   int window_size_changed;
-
 
   Uint32 color_back; /* colors */
   Uint32 color_grid;
@@ -86,6 +112,8 @@ typedef struct _n_sa
   t_symbol *s_window_h;
   t_symbol *s_scope_w;
   t_symbol *s_spectr_w;
+  t_symbol *s_scope_view;
+  t_symbol *s_spectr_view;
 } t_n_sa;
 
 
@@ -100,9 +128,15 @@ void n_sa_init(t_n_sa *x)
   x->s_n = 64;
   x->s_sr = 44100;
   x->window = 0;
-  x->i_window_h = 200;
-  x->i_scope_w = 200;
-  x->i_spectr_w = 200;
+  x->window_w_min = 100;
+  x->window_h_min = 200;
+  x->window_ox = 20;
+  x->window_oy = 20;
+  x->window_h = 200;
+  x->menu_w = 100;
+  x->split_w = 4;
+  x->scope_w = 200;
+  x->spectr_w = 200;
 }
 
 //----------------------------------------------------------------------------//
@@ -133,19 +167,30 @@ void n_sa_output_v2(t_n_sa *x, t_symbol *s, int v1, int v2)
 //----------------------------------------------------------------------------//
 // display
 //----------------------------------------------------------------------------//
-void n_sa_sdl_init_window(t_n_sa *x)
+void n_sa_calc_size_window(t_n_sa *x)
 {
-  x->window_ox = x->i_window_ox;
-  x->window_oy = x->i_window_oy;
-  x->window_h = x->i_window_h;
-  x->window_w = x->i_scope_w + WIDTH_SPLIT + x->i_spectr_w;
+  /* x->window_h = x->i_window_h; */
+  x->window_w = 
+    ((x->menu_w + x->split_w) * x->menu_view) +
+    ((x->scope_w + x->split_w) * x->scope_view) + 
+    (x->spectr_w * x->spectr_view);
+  x->window_w_min = 100;
+  x->window_h_min = 100;
 }
 
 //----------------------------------------------------------------------------//
-void n_sa_calc_size_window(t_n_sa *x)
+void n_sa_calc_size_areas(t_n_sa *x)
 {
-  x->window_h = x->i_window_h;
-  x->window_w = x->i_scope_w + WIDTH_SPLIT + x->i_spectr_w;
+  int i;
+  float f;
+  if (x->menu_view)
+    {
+      i = x->window_w - x->menu_w;
+    }
+  float w = (float)x->scope_w / (float)x->spectr_w;
+  w = (float)i * w;
+  x->scope_w = w;
+  x->spectr_w = i - x->scope_w;
 }
 
 
@@ -153,12 +198,14 @@ void n_sa_calc_size_window(t_n_sa *x)
 void n_sa_reshape(t_n_sa *x)
 {
   post("RESHAPE");
+  if (x) {};
 }
 
 //----------------------------------------------------------------------------//
 void n_sa_redraw(t_n_sa *x)
 {
   post("REDRAW");
+  if (x) {};
 }
 
 //----------------------------------------------------------------------------//
@@ -180,6 +227,7 @@ void n_sa_sdl_window(t_n_sa *x)
 	{
 	  post("error: n_sa~: SDL_CreateWindow: %s",SDL_GetError()); 
 	}
+      SDL_SetWindowMinimumSize(x->win, x->window_w_min, x->window_h_min);
       clock_delay(x->cl, x->cl_time);
     }
   else
@@ -216,6 +264,13 @@ void n_sa_events(t_n_sa *x)
             case SDL_WINDOWEVENT:
               switch (x->event.window.event)
                 {
+                case SDL_WINDOWEVENT_MOVED:
+		  post("moved");
+                  x->window_ox = x->event.window.data1;
+                  x->window_oy = x->event.window.data2;
+		  n_sa_output_v1(x, x->s_window_ox, x->window_ox); 
+		  n_sa_output_v1(x, x->s_window_oy, x->window_oy); 
+                  break;
                 case SDL_WINDOWEVENT_SIZE_CHANGED:
 		  post("size_changed");
                   x->window_w = x->event.window.data1;
@@ -236,15 +291,6 @@ void n_sa_events(t_n_sa *x)
                   n_sa_sdl_window(x);
 		  n_sa_output_v1(x, x->s_window, x->window); 
                   break;
-                case SDL_WINDOWEVENT_MOVED:
-		  post("moved");
-                  x->window_ox = x->event.window.data1;
-                  x->window_oy = x->event.window.data2;
-                  x->i_window_ox = x->event.window.data1;
-                  x->i_window_oy = x->event.window.data2;
-		  n_sa_output_v1(x, x->s_window_ox, x->window_ox); 
-		  n_sa_output_v1(x, x->s_window_oy, x->window_oy); 
-                  break;
                 }
               break;
             case SDL_KEYDOWN:
@@ -260,27 +306,23 @@ void n_sa_events(t_n_sa *x)
         }
     }
 
-  if (x->window && x->window_moved)
+  if (x->window)
     {
-      SDL_SetWindowPosition(x->win, x->i_window_ox, x->i_window_oy);
-      x->window_moved = 0;
-    }
+      if (x->window_moved)
+	{
+	  SDL_SetWindowPosition(x->win, x->window_ox, x->window_oy);
+	  x->window_moved = 0;
+	}
 
 
-  if (x->window && x->window_size_changed)
-    {
-      /* x->gi.display_mode[0].w = x->window_w; */
-      /* x->gi.display_mode[0].h = x->window_h; */
-      /* SDL_SetWindowDisplayMode(x->win, &x->gi.display_mode[0]); */
-      n_sa_calc_size_window(x);
-      SDL_SetWindowSize(x->win, x->window_w, x->window_h);
-      n_sa_reshape(x);
-      n_sa_redraw(x);
-      /* n_sa_output_v1(x, x->s_window_w, x->window_w); */
-      /* n_sa_output_v1(x, x->s_window_h, x->window_h); */
-      /* n_sa_output_v1(x, x->s_scope_w, x->scope_w); */
-      /* n_sa_output_v1(x, x->s_spectr_w, x->spectr_w); */
-      x->window_size_changed = 0;
+      if (x->window_size_changed)
+	{
+	  n_sa_calc_size_window(x);
+	  SDL_SetWindowSize(x->win, x->window_w, x->window_h);
+	  n_sa_reshape(x);
+	  n_sa_redraw(x);
+	  x->window_size_changed = 0;
+	}
     }
 }
 
@@ -290,26 +332,24 @@ void n_sa_events(t_n_sa *x)
 //----------------------------------------------------------------------------//
 static void n_sa_window(t_n_sa *x, t_floatarg f)
 {
-  if (x->window != f)
-    {
-      x->window = f;
-      n_sa_sdl_init_window(x);
-      n_sa_sdl_window(x);
-      n_sa_sdl_get_surface(x);
-    }
+  x->window = f;
+  n_sa_calc_size_window(x);
+  n_sa_sdl_window(x);
+  n_sa_reshape(x);
+  n_sa_redraw(x);
 }
 
 //----------------------------------------------------------------------------//
 static void n_sa_window_ox(t_n_sa *x, t_floatarg f)
 {
-  x->i_window_ox = f;
+  x->window_ox = f;
   x->window_moved = 1;
 }
 
 //----------------------------------------------------------------------------//
 static void n_sa_window_oy(t_n_sa *x, t_floatarg f)
 {
-  x->i_window_oy = f;
+  x->window_oy = f;
   x->window_moved = 1;
 }
 
@@ -317,7 +357,7 @@ static void n_sa_window_oy(t_n_sa *x, t_floatarg f)
 static void n_sa_window_h(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(MIN_HEIGHT, MAX_HEIGHT, f);
-  x->i_window_h = f;
+  x->window_h = f;
   x->window_size_changed = 1;
 }
 
@@ -325,7 +365,7 @@ static void n_sa_window_h(t_n_sa *x, t_floatarg f)
 static void n_sa_scope_w(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(MIN_WIDTH_SCOPE, MAX_WIDTH_SCOPE, f);
-  x->i_scope_w = f;
+  x->scope_w = f;
   x->window_size_changed = 1;
 }
 
@@ -333,7 +373,28 @@ static void n_sa_scope_w(t_n_sa *x, t_floatarg f)
 static void n_sa_spectr_w(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(MIN_WIDTH_SPECTR, MAX_WIDTH_SPECTR, f);
-  x->i_spectr_w = f;
+  x->spectr_w = f;
+  x->window_size_changed = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_menu_view(t_n_sa *x, t_floatarg f)
+{
+  x->menu_view = f;
+  x->window_size_changed = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_view(t_n_sa *x, t_floatarg f)
+{
+  x->scope_view = f;
+  x->window_size_changed = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_view(t_n_sa *x, t_floatarg f)
+{
+  x->spectr_view = f;
   x->window_size_changed = 1;
 }
 
@@ -350,10 +411,15 @@ t_int *n_sa_perform(t_int *w)
       sig[i] = (t_sample *)(w[i + 2]);
     }
   int n = x->s_n;
+  float f;
 
   // dsp
   while (n--)
     {
+      for (i=0; i < x->amount_channel; i++)
+	{
+	  f += *(sig[i]++);
+	}
     }
   
   return (w + x->amount_channel + 2);
@@ -412,13 +478,15 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->cl = clock_new(x, (t_method)n_sa_events);
 
   // symbols
-  x->s_window = gensym("window");
-  x->s_window_ox = gensym("window_ox");
-  x->s_window_oy = gensym("window_oy");
-  x->s_window_w  = gensym("window_w");
-  x->s_window_h  = gensym("window_h");
-  x->s_scope_w   = gensym("scope_w");
-  x->s_spectr_w  = gensym("spectr_w");
+  x->s_window       = gensym("window");
+  x->s_window_ox    = gensym("window_ox");
+  x->s_window_oy    = gensym("window_oy");
+  x->s_window_w     = gensym("window_w");
+  x->s_window_h     = gensym("window_h");
+  x->s_scope_w      = gensym("scope_w");
+  x->s_spectr_w     = gensym("spectr_w");
+  x->s_scope_view   = gensym("scope_view");
+  x->s_spectr_view  = gensym("spectr_view");
 
   return (x);
   if (s) {};
@@ -444,4 +512,7 @@ void n_sa_tilde_setup(void)
   class_addmethod(n_sa_class,(t_method)n_sa_window_h, gensym("window_h"), A_DEFFLOAT, 0);
   class_addmethod(n_sa_class,(t_method)n_sa_scope_w, gensym("scope_w"), A_DEFFLOAT, 0);
   class_addmethod(n_sa_class,(t_method)n_sa_spectr_w, gensym("spectr_w"), A_DEFFLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_menu_view, gensym("menu_view"), A_DEFFLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_view, gensym("scope_view"), A_DEFFLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_spectr_view, gensym("spectr_view"), A_DEFFLOAT, 0);
 }
