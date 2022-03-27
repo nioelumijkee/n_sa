@@ -61,8 +61,11 @@ typedef struct _n_sa
   int window_oy;
   int split_w;
   int scope_w;
+  int scope_w_full;
   int spectr_w;
+  int spectr_w_full;
   int phase_w;
+  int phase_w_full;
   int scope_view;
   int spectr_view;
   int phase_view;
@@ -82,16 +85,19 @@ typedef struct _n_sa
   int i_color_back;
   int i_color_grid_hi;
   int i_color_grid_lo;
+  int i_color_sep;
   Uint32 color_split;
   Uint32 color_back;
   Uint32 color_grid_hi;
   Uint32 color_grid_lo;
+  Uint32 color_sep;
 
   /* sdl */
   SDL_Window *win;  /* win */
   SDL_Surface *surface; /* sdl */
-  int offset;
+  int ofs;
   SDL_Event event;
+  Uint32 *pix;
 
   /* clock */
   t_clock *cl;
@@ -102,10 +108,6 @@ typedef struct _n_sa
   t_symbol *s_window_ox;
   t_symbol *s_window_oy;
 } t_n_sa;
-
-
-
-
 
 //----------------------------------------------------------------------------//
 // various /////////////////////////////////////////////////////////////////////
@@ -144,6 +146,7 @@ void n_sa_calc_colors(t_n_sa *x)
   x->color_back = n_sa_color(x, x->i_color_back);
   x->color_grid_hi = n_sa_color(x, x->i_color_grid_hi);
   x->color_grid_lo = n_sa_color(x, x->i_color_grid_lo);
+  x->color_sep = n_sa_color(x, x->i_color_sep);
 }
 
 //----------------------------------------------------------------------------//
@@ -160,24 +163,102 @@ void n_sa_calc_size_window(t_n_sa *x)
 
   x->phase_w = x->window_h;
 
+  x->scope_w_full = x->scope_w + x->split_w + x->split_w;
+  x->spectr_w_full = x->spectr_w + x->split_w + x->split_w;
+  x->phase_w_full = x->phase_w + x->split_w + x->split_w;
+
+
   x->window_w = 
-    ((x->scope_w + x->split_w) * x->scope_view) +   // spectr
-    ((x->spectr_w + x->split_w) * x->spectr_view) +   // spectr
-    ((x->window_h + x->split_w) * x->phase_view);    // phase
+    (x->scope_w_full  * x->scope_view)   +  // spectr
+    (x->spectr_w_full * x->spectr_view)  +  // spectr
+    (x->phase_w_full  * x->phase_view);     // phase
 }
 
 //----------------------------------------------------------------------------//
-void n_sa_reshape(t_n_sa *x)
+void draw_line_hor(Uint32 *pix, int ofs, int x0, int y0, int w, Uint32 col)
 {
-  post("RESHAPE");
-  if (x) {};
+  int x;
+  Uint32 *bufp;
+  Uint32 *p;
+  p = pix + (y0 * ofs);
+  for (x=0; x<w; x++)
+    {
+      bufp = p + x0 + x;
+      *bufp = col;
+    }
 }
 
 //----------------------------------------------------------------------------//
-void n_sa_redraw(t_n_sa *x)
+void draw_line_ver(Uint32 *pix, int ofs, int x0, int y0, int h, Uint32 col)
+{
+  int y;
+  Uint32 *bufp;
+  Uint32 *p;
+  for (y=0; y<h; y++)
+    {
+      p = pix + ((y0 + y) * ofs);
+      bufp = p + x0;
+      *bufp = col;
+    }
+}
+
+//----------------------------------------------------------------------------//
+void draw_rect(Uint32 *pix, int ofs, int x0, int y0, int w, int h, Uint32 col)
+{
+  int x,y;
+  Uint32 *bufp;
+  Uint32 *p;
+  for (y=0; y<h; y++)
+    {
+      p = pix + ((y0 + y) * ofs);
+      for (x=0; x<w; x++)
+	{
+	  bufp = p + x0 + x;
+	  *bufp = col;
+	}
+    }
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_redraw(t_n_sa *z)
 {
   post("REDRAW");
-  if (x) {};
+
+  int i,j,c,k;
+
+
+  // scope
+  if (z->scope_view)
+    {
+      i = z->window_h - z->split_w;
+      j = z->window_h - z->split_w - z->split_w;
+      c = z->scope_w_full - z->split_w;
+      k = z->window_h - z->split_w - z->split_w;
+      // split
+      draw_rect(z->pix, z->ofs, 0, 0, z->scope_w_full, z->split_w, z->color_split);
+      draw_rect(z->pix, z->ofs, 0, i, z->scope_w_full, z->split_w, z->color_split);
+      draw_rect(z->pix, z->ofs, 0, z->split_w, z->split_w, j, z->color_split);
+      draw_rect(z->pix, z->ofs, c, z->split_w, z->split_w, j, z->color_split);
+      // back
+      draw_rect(z->pix, z->ofs, z->split_w, z->split_w, z->scope_w, k, z->color_back);
+      // grid
+      draw_line_hor(z->pix, z->ofs, 50, 60, 20, z->color_grid_hi);
+      draw_line_ver(z->pix, z->ofs, 20, 30, 44, z->color_grid_lo);
+      // separator
+      // text
+      // wave
+    }
+  // spectr
+  if (z->spectr_view)
+    {
+    }
+  // phase
+  if (z->phase_view)
+    {
+    }
+
+  // sdl
+  SDL_UpdateWindowSurface(z->win);
 }
 
 //----------------------------------------------------------------------------//
@@ -221,7 +302,8 @@ void n_sa_sdl_get_surface(t_n_sa *x)
 	{
 	  post("error: n_sa~: SDL_GetWindowSurface: %s",SDL_GetError()); 
 	}
-      x->offset = x->surface->pitch / 4;
+      x->ofs = x->surface->pitch / 4;
+      x->pix = (Uint32 *)x->surface->pixels;
     }
 }
 
@@ -295,7 +377,6 @@ static void n_sa_window(t_n_sa *x, t_floatarg f)
       n_sa_sdl_window(x);
       n_sa_sdl_get_surface(x);
       n_sa_calc_colors(x);
-      n_sa_reshape(x);
       n_sa_redraw(x);
     }
   else
@@ -398,6 +479,16 @@ static void n_sa_color_grid_lo(t_n_sa *x, t_floatarg f)
 }
 
 //----------------------------------------------------------------------------//
+static void n_sa_color_sep(t_n_sa *x, t_floatarg f)
+{
+  x->i_color_sep = f * -1;
+  if (x->window)
+    {
+      x->color_sep = n_sa_color(x, x->i_color_sep);
+    }
+}
+
+//----------------------------------------------------------------------------//
 // dsp /////////////////////////////////////////////////////////////////////////
 //----------------------------------------------------------------------------//
 t_int *n_sa_perform(t_int *w)
@@ -480,6 +571,11 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->i_scope_view = 0;
   x->i_spectr_view = 0;
   x->i_phase_view = 0;
+  x->i_color_split = 0;
+  x->i_color_back = 0;
+  x->i_color_grid_hi = 0;
+  x->i_color_grid_lo = 0;
+  x->i_color_sep = 0;
 
   // init
   n_sa_calc_constant(x);
@@ -527,4 +623,5 @@ void n_sa_tilde_setup(void)
   class_addmethod(n_sa_class,(t_method)n_sa_color_back, gensym("color_back"), A_DEFFLOAT, 0);
   class_addmethod(n_sa_class,(t_method)n_sa_color_grid_hi, gensym("color_grid_hi"), A_DEFFLOAT, 0);
   class_addmethod(n_sa_class,(t_method)n_sa_color_grid_lo, gensym("color_grid_lo"), A_DEFFLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_color_sep, gensym("color_sep"), A_DEFFLOAT, 0);
 }
