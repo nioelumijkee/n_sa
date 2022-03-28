@@ -1,16 +1,15 @@
 /*----------------------------------------------------------------------------//
- n_sa - signal analysis tool
+                           n_sa - signal analysis tool
 
-+-+--------------------+-+--------------------------------+-+-------------+-+
-| |       SCOPE        | |            SPECTR              | |    PHASE    | |
-+ +--------------------+ +--------------------------------+-+-------------+-+
-| |                    | |                                | |             | |
-| |                    | |                                | |             | |
-| |                    | |                                | |             | |
-+-+--------------------+-+--------------------------------+-+-------------+-+
+ +-+--------------------+-+--------------------------------+-+-------------+-+
+ | |       SCOPE        | |            SPECTR              | |    PHASE    | |
+ + +--------------------+ +--------------------------------+-+-------------+-+
+ | |                    | |                                | |             | |
+ | |                    | |                                | |             | |
+ | |                    | |                                | |             | |
+ +-+--------------------+-+--------------------------------+-+-------------+-+
 
 //----------------------------------------------------------------------------*/
-#include <stdlib.h>
 #include <SDL2/SDL.h>
 #include "m_pd.h"
 
@@ -22,6 +21,14 @@
 #define MAX_WIDTH_SCOPE 1024
 #define MIN_WIDTH_SPECTR 1
 #define MAX_WIDTH_SPECTR 1024
+#define MIN_SCOPE_GRID_VER 0
+#define MAX_SCOPE_GRID_VER 31
+#define MIN_SCOPE_GRID_HOR 0
+#define MAX_SCOPE_GRID_HOR 31
+#define C_2PI 6.2831853
+#define SYNC_OFF 0
+#define SYNC_UP 1
+#define SYNC_DOWN 2
 
 #define CLIP_MINMAX(MIN, MAX, IN)		\
   if      ((IN) < (MIN)) (IN) = (MIN);          \
@@ -33,12 +40,15 @@
 #define CLIP_MAX(MAX, IN)			\
   if ((IN) < (MAX))      (IN) = (MAX);
 
-
 //----------------------------------------------------------------------------//
 static t_class *n_sa_class;
 
 typedef struct _n_sa_channel
 {
+  int on;
+  t_float amp;
+  int i_color;
+  Uint32 color;
 } t_n_sa_channel;
 
 typedef struct _n_sa
@@ -48,6 +58,8 @@ typedef struct _n_sa
   int s_n; /* blocksize */
   t_float s_sr; /* sample rate */
   t_int **v_d;      /* vector for dsp_addv */
+
+  /* channels */
   int amount_channel; /* body */
   t_n_sa_channel ch[MAX_CHANNEL];
 
@@ -70,6 +82,21 @@ typedef struct _n_sa
   int spectr_view;
   int phase_view;
 
+  /* scope */
+  int scope_grid_view;
+  int scope_grid_ver;
+  int scope_grid_hor;
+  int scope_sep_view;
+  int scope_recpos_view;
+  int scope_separate;
+  int scope_sync;
+  int scope_sync_channel;
+  t_float scope_sync_treshold;
+  int scope_sync_dc;
+  t_float scope_sync_dc_freq;
+  int scope_spp;
+
+
   /* input */
   int i_window_h;
   int i_scope_w;
@@ -86,11 +113,17 @@ typedef struct _n_sa
   int i_color_grid_hi;
   int i_color_grid_lo;
   int i_color_sep;
+  int i_color_recpos;
   Uint32 color_split;
   Uint32 color_back;
   Uint32 color_grid_hi;
   Uint32 color_grid_lo;
   Uint32 color_sep;
+  Uint32 color_recpos;
+
+  /* scope */
+  t_float scope_sync_dc_f;
+
 
   /* sdl */
   SDL_Window *win;  /* win */
@@ -112,19 +145,17 @@ typedef struct _n_sa
 //----------------------------------------------------------------------------//
 // various /////////////////////////////////////////////////////////////////////
 //----------------------------------------------------------------------------//
-void n_sa_calc_constant(t_n_sa *x)
-{
-  if (x) {}
-}
-
-//----------------------------------------------------------------------------//
-// output
-//----------------------------------------------------------------------------//
 void n_sa_output(t_n_sa *x, t_symbol *s, int v)
 {
   t_atom a[1];
   SETFLOAT(a, (t_float)v);
   outlet_anything(x->x_out, s, 1, a);
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_calc_constant(t_n_sa *x)
+{
+  x->scope_sync_dc_f = x->scope_sync_dc_freq * (C_2PI / (t_float)x->s_sr);
 }
 
 //----------------------------------------------------------------------------//
@@ -142,11 +173,17 @@ Uint32 n_sa_color(t_n_sa *x, int color)
 //----------------------------------------------------------------------------//
 void n_sa_calc_colors(t_n_sa *x)
 {
+  int i;
   x->color_split = n_sa_color(x, x->i_color_split);
   x->color_back = n_sa_color(x, x->i_color_back);
   x->color_grid_hi = n_sa_color(x, x->i_color_grid_hi);
   x->color_grid_lo = n_sa_color(x, x->i_color_grid_lo);
   x->color_sep = n_sa_color(x, x->i_color_sep);
+  x->color_recpos = n_sa_color(x, x->i_color_recpos);
+  for (i=0; i<x->amount_channel; i++)
+    {
+      x->ch[i].color = n_sa_color(x, x->ch[i].i_color);
+    }
 }
 
 //----------------------------------------------------------------------------//
@@ -370,7 +407,7 @@ void n_sa_events(t_n_sa *x)
 //----------------------------------------------------------------------------//
 static void n_sa_window(t_n_sa *x, t_floatarg f)
 {
-  x->window = f;
+  x->window = (f > 0);
   if (x->window)
     {
       n_sa_calc_size_window(x);
@@ -423,19 +460,19 @@ static void n_sa_spectr_w(t_n_sa *x, t_floatarg f)
 //----------------------------------------------------------------------------//
 static void n_sa_scope_view(t_n_sa *x, t_floatarg f)
 {
-  x->i_scope_view = f;
+  x->i_scope_view = (f > 0);
 }
 
 //----------------------------------------------------------------------------//
 static void n_sa_spectr_view(t_n_sa *x, t_floatarg f)
 {
-  x->i_spectr_view = f;
+  x->i_spectr_view = (f > 0);
 }
 
 //----------------------------------------------------------------------------//
 static void n_sa_phase_view(t_n_sa *x, t_floatarg f)
 {
-  x->i_phase_view = f;
+  x->i_phase_view = (f > 0);
 }
 
 //----------------------------------------------------------------------------//
@@ -486,6 +523,127 @@ static void n_sa_color_sep(t_n_sa *x, t_floatarg f)
     {
       x->color_sep = n_sa_color(x, x->i_color_sep);
     }
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_color_recpos(t_n_sa *x, t_floatarg f)
+{
+  x->i_color_recpos = f * -1;
+  if (x->window)
+    {
+      x->color_recpos = n_sa_color(x, x->i_color_recpos);
+    }
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_color_ch(t_n_sa *x, t_floatarg ch, t_floatarg f)
+{
+  int i = ch;
+  CLIP_MINMAX(0, x->amount_channel - 1, i);
+  x->ch[i].i_color = f * -1;
+  if (x->window)
+    {
+      x->ch[i].color = n_sa_color(x, x->ch[i].i_color);
+    }
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_grid_view(t_n_sa *x, t_floatarg f)
+{
+  x->scope_grid_view = (f > 0);
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_grid_ver(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(MIN_SCOPE_GRID_VER, MAX_SCOPE_GRID_VER, f);
+  x->scope_grid_ver = f;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_grid_hor(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(MIN_SCOPE_GRID_HOR, MAX_SCOPE_GRID_HOR, f);
+  x->scope_grid_hor = f;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_sep_view(t_n_sa *x, t_floatarg f)
+{
+  x->scope_sep_view = (f > 0);
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_recpos_view(t_n_sa *x, t_floatarg f)
+{
+  x->scope_recpos_view = (f > 0);
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_separate(t_n_sa *x, t_floatarg f)
+{
+  x->scope_separate = (f > 0);
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_sync(t_n_sa *x, t_floatarg f)
+{
+  if      (f <= 0)
+    x->scope_sync = SYNC_OFF;
+  else if (f == 1)
+    x->scope_sync = SYNC_UP;
+  else
+    x->scope_sync = SYNC_DOWN;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_sync_channel(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(0, x->amount_channel - 1, f);
+  x->scope_sync_channel = f;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_sync_treshold(t_n_sa *x, t_floatarg f)
+{
+  x->scope_sync_treshold = f;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_sync_dc(t_n_sa *x, t_floatarg f)
+{
+  x->scope_sync_dc = (f > 0);
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_sync_dc_freq(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(1.0, 1000.0, f);
+  x->scope_sync_dc_freq = f;
+  x->scope_sync_dc_f = x->scope_sync_dc_freq * (C_2PI / (t_float)x->s_sr);
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_spp(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MIN(1, f);
+  x->scope_spp = f;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_on(t_n_sa *x, t_floatarg ch, t_floatarg f)
+{
+  int i = ch;
+  CLIP_MINMAX(0, x->amount_channel - 1, i);
+  x->ch[i].on = (f > 0);
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_scope_amp(t_n_sa *x, t_floatarg ch, t_floatarg f)
+{
+  int i = ch;
+  CLIP_MINMAX(0, x->amount_channel - 1, i);
+  x->ch[i].amp = f;
 }
 
 //----------------------------------------------------------------------------//
@@ -576,8 +734,29 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->i_color_grid_hi = 0;
   x->i_color_grid_lo = 0;
   x->i_color_sep = 0;
+  x->i_color_recpos = 0;
 
-  // init
+  x->scope_grid_view = 0;
+  x->scope_grid_ver = 0;
+  x->scope_grid_hor = 0;
+  x->scope_sep_view = 0;
+  x->scope_recpos_view = 0;
+  x->scope_separate = 0;
+  x->scope_sync = 0;
+  x->scope_sync_channel = 0;
+  x->scope_sync_treshold = 0.0;
+  x->scope_sync_dc = 0;
+  x->scope_sync_dc_freq = 1.0;
+  x->scope_spp = 1;
+
+  for (i = 0; i < x->amount_channel; i++)
+    {
+      x->ch[i].i_color = 0;
+      x->ch[i].on = 0;
+      x->ch[i].amp = 0.0;
+    }
+
+
   n_sa_calc_constant(x);
 
   // mem
@@ -605,23 +784,37 @@ static void n_sa_free(t_n_sa *x)
 //----------------------------------------------------------------------------//
 void n_sa_tilde_setup(void)
 {
-  n_sa_class = class_new(gensym("n_sa~"), (t_newmethod)n_sa_new, 
-			 (t_method)n_sa_free,
-			 sizeof(t_n_sa), 0, A_GIMME, 0);
+  n_sa_class=class_new(gensym("n_sa~"),(t_newmethod)n_sa_new,(t_method)n_sa_free,sizeof(t_n_sa),0,A_GIMME,0);
   class_addmethod(n_sa_class,nullfn, gensym("signal"), 0);
   class_addmethod(n_sa_class,(t_method)n_sa_dsp, gensym("dsp"), 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_window, gensym("window"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_window_ox, gensym("window_ox"), A_DEFFLOAT, 0); 
-  class_addmethod(n_sa_class,(t_method)n_sa_window_oy, gensym("window_oy"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_window_h, gensym("window_h"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_scope_w, gensym("scope_w"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_spectr_w, gensym("spectr_w"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_scope_view, gensym("scope_view"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_spectr_view, gensym("spectr_view"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_phase_view, gensym("phase_view"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_color_split, gensym("color_split"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_color_back, gensym("color_back"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_color_grid_hi, gensym("color_grid_hi"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_color_grid_lo, gensym("color_grid_lo"), A_DEFFLOAT, 0);
-  class_addmethod(n_sa_class,(t_method)n_sa_color_sep, gensym("color_sep"), A_DEFFLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_window, gensym("window"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_window_ox, gensym("window_ox"), A_FLOAT, 0); 
+  class_addmethod(n_sa_class,(t_method)n_sa_window_oy, gensym("window_oy"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_window_h, gensym("window_h"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_w, gensym("scope_w"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_spectr_w, gensym("spectr_w"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_view, gensym("scope_view"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_spectr_view, gensym("spectr_view"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_phase_view, gensym("phase_view"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_color_split, gensym("color_split"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_color_back, gensym("color_back"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_color_grid_hi, gensym("color_grid_hi"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_color_grid_lo, gensym("color_grid_lo"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_color_sep, gensym("color_sep"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_color_recpos, gensym("color_recpos"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_color_ch, gensym("color_ch"), A_FLOAT, A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_grid_view, gensym("scope_grid_view"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_grid_ver, gensym("scope_grid_ver"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_grid_hor, gensym("scope_grid_hor"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_sep_view, gensym("scope_sep_view"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_recpos_view, gensym("scope_recpos_view"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_separate, gensym("scope_separate"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_sync, gensym("scope_sync"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_sync_channel, gensym("scope_sync_channel"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_sync_treshold, gensym("scope_sync_treshold"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_sync_dc, gensym("scope_sync_dc"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_sync_dc_freq, gensym("scope_sync_dc_freq"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_spp, gensym("scope_spp"), A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_on, gensym("scope_on"), A_FLOAT, A_FLOAT, 0);
+  class_addmethod(n_sa_class,(t_method)n_sa_scope_amp, gensym("scope_amp"), A_FLOAT, A_FLOAT, 0);
 }
