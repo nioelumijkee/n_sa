@@ -49,6 +49,8 @@ typedef struct _n_sa_channel
   t_float amp;
   int i_color;
   Uint32 color;
+  int center;
+  int grid_lo;
 } t_n_sa_channel;
 
 typedef struct _n_sa
@@ -123,6 +125,8 @@ typedef struct _n_sa
 
   /* scope */
   t_float scope_sync_dc_f;
+  int scope_h_one;
+  int scope_h_half;
 
 
   /* sdl */
@@ -183,6 +187,53 @@ void n_sa_calc_colors(t_n_sa *x)
   for (i=0; i<x->amount_channel; i++)
     {
       x->ch[i].color = n_sa_color(x, x->ch[i].i_color);
+    }
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_scope_calc_h(t_n_sa *x)
+{
+  int i, j;
+  int last;
+
+  // all in's
+  j = 0;
+  for (i = 0; i < x->amount_channel; i++)
+    {
+      if (x->ch[i].on)
+	j++;
+    }
+
+  // no separate
+  if (x->scope_separate == 0 || j <= 1)
+    {
+      x->scope_h_one  = x->window_h;
+      x->scope_h_half = x->scope_h_one / 2;
+      for (i = 0; i < x->amount_channel; i++)
+	{
+	  x->ch[i].center  = x->scope_h_half;
+	  x->ch[i].grid_lo = -1;
+	} 
+    }
+
+  // separate
+  else
+    {
+      x->scope_h_one = x->window_h / j;
+      x->scope_h_half = x->scope_h_one / 2;
+      j = 0;
+      last = 0;
+      for (i = 0; i < x->amount_channel; i++)
+	{
+	  if (x->ch[i].on)
+	    {
+	      x->ch[i].center  = x->scope_h_one * (j + 0.5);
+	      x->ch[i].grid_lo = x->scope_h_one * (j + 1);
+	      last = i;
+	      j++;
+	    }
+	}
+      x->ch[last].grid_lo = -1;
     }
 }
 
@@ -257,45 +308,76 @@ void draw_rect(Uint32 *pix, int ofs, int x0, int y0, int w, int h, Uint32 col)
 }
 
 //----------------------------------------------------------------------------//
-void n_sa_redraw(t_n_sa *z)
+void n_sa_redraw(t_n_sa *x)
 {
-  post("REDRAW");
+  /* post("REDRAW"); */
 
   int i,j,c,k;
 
 
   // scope
-  if (z->scope_view)
+  if (x->scope_view)
     {
-      i = z->window_h - z->split_w;
-      j = z->window_h - z->split_w - z->split_w;
-      c = z->scope_w_full - z->split_w;
-      k = z->window_h - z->split_w - z->split_w;
+      i = x->window_h - x->split_w;
+      j = x->window_h - x->split_w - x->split_w;
+      c = x->scope_w_full - x->split_w;
+      k = x->window_h - x->split_w - x->split_w;
       // split
-      draw_rect(z->pix, z->ofs, 0, 0, z->scope_w_full, z->split_w, z->color_split);
-      draw_rect(z->pix, z->ofs, 0, i, z->scope_w_full, z->split_w, z->color_split);
-      draw_rect(z->pix, z->ofs, 0, z->split_w, z->split_w, j, z->color_split);
-      draw_rect(z->pix, z->ofs, c, z->split_w, z->split_w, j, z->color_split);
+      draw_rect(x->pix, x->ofs, 0, 0, x->scope_w_full, x->split_w, x->color_split);
+      draw_rect(x->pix, x->ofs, 0, i, x->scope_w_full, x->split_w, x->color_split);
+      draw_rect(x->pix, x->ofs, 0, x->split_w, x->split_w, j, x->color_split);
+      draw_rect(x->pix, x->ofs, c, x->split_w, x->split_w, j, x->color_split);
       // back
-      draw_rect(z->pix, z->ofs, z->split_w, z->split_w, z->scope_w, k, z->color_back);
-      // grid
-      draw_line_hor(z->pix, z->ofs, 50, 60, 20, z->color_grid_hi);
-      draw_line_ver(z->pix, z->ofs, 20, 30, 44, z->color_grid_lo);
+      draw_rect(x->pix, x->ofs, x->split_w, x->split_w, x->scope_w, k, x->color_back);
       // separator
+      if (x->scope_sep_view)
+	{
+	  if (x->scope_separate)
+	    {
+	      for (i=0; i<x->amount_channel; i++)
+		{
+		  if (x->ch[i].on)
+		    {
+		      j = x->ch[i].center + x->split_w;
+		      draw_line_hor(x->pix, x->ofs, x->split_w, j, x->scope_w, x->color_sep);
+		    }
+		}
+	    }
+	  else
+	    {
+	      j = x->ch[0].center + x->split_w;
+	      draw_line_hor(x->pix, x->ofs, x->split_w, j, x->scope_w, x->color_sep);
+	    }
+	}
+      // grid
+      if (x->scope_grid_view)
+	{
+	  if (x->scope_separate)
+	    {
+	      for (i=0; i<x->amount_channel; i++)
+		{
+		  if (x->ch[i].on && x->ch[i].grid_lo != -1)
+		    {
+		      j = x->ch[i].grid_lo + x->split_w;
+		      draw_line_hor(x->pix, x->ofs, x->split_w, j, x->scope_w, x->color_grid_lo);
+		    }
+		}
+	    }
+	}
       // text
       // wave
     }
   // spectr
-  if (z->spectr_view)
+  if (x->spectr_view)
     {
     }
   // phase
-  if (z->phase_view)
+  if (x->phase_view)
     {
     }
 
   // sdl
-  SDL_UpdateWindowSurface(z->win);
+  SDL_UpdateWindowSurface(x->win);
 }
 
 //----------------------------------------------------------------------------//
@@ -360,14 +442,14 @@ void n_sa_events(t_n_sa *x)
               switch (x->event.window.event)
                 {
                 case SDL_WINDOWEVENT_MOVED:
-		  post("moved");
+		  /* post("moved"); */
                   x->window_ox = x->event.window.data1;
                   x->window_oy = x->event.window.data2;
 		  n_sa_output(x, x->s_window_ox, x->window_ox); 
 		  n_sa_output(x, x->s_window_oy, x->window_oy); 
                   break;
                 case SDL_WINDOWEVENT_CLOSE:
-		  post("close");
+		  /* post("close"); */
 		  x->window = 0;
                   n_sa_sdl_window_close(x);
 		  n_sa_output(x, x->s_window, x->window); 
@@ -378,7 +460,7 @@ void n_sa_events(t_n_sa *x)
               switch (x->event.key.keysym.sym)
                 {
                 case SDLK_ESCAPE:
-                  post("Escape");
+                  /* post("Escape"); */
 		  x->window = 0;
                   n_sa_sdl_window_close(x);
 		  n_sa_output(x, x->s_window, x->window); 
@@ -398,6 +480,8 @@ void n_sa_events(t_n_sa *x)
 	  SDL_SetWindowPosition(x->win, x->window_ox, x->window_oy);
 	  x->window_moved = 0;
 	}
+
+      n_sa_redraw(x);
     }
 }
 
@@ -411,6 +495,7 @@ static void n_sa_window(t_n_sa *x, t_floatarg f)
   if (x->window)
     {
       n_sa_calc_size_window(x);
+      n_sa_scope_calc_h(x);
       n_sa_sdl_window(x);
       n_sa_sdl_get_surface(x);
       n_sa_calc_colors(x);
@@ -583,6 +668,7 @@ static void n_sa_scope_recpos_view(t_n_sa *x, t_floatarg f)
 static void n_sa_scope_separate(t_n_sa *x, t_floatarg f)
 {
   x->scope_separate = (f > 0);
+  n_sa_scope_calc_h(x);
 }
 
 //----------------------------------------------------------------------------//
@@ -636,6 +722,10 @@ static void n_sa_scope_on(t_n_sa *x, t_floatarg ch, t_floatarg f)
   int i = ch;
   CLIP_MINMAX(0, x->amount_channel - 1, i);
   x->ch[i].on = (f > 0);
+  if (x->window)
+    {
+      n_sa_scope_calc_h(x);
+    }
 }
 
 //----------------------------------------------------------------------------//
@@ -763,7 +853,7 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->v_d = getbytes(sizeof(t_int *) *(x->amount_channel + 1));
 
   // clock
-  x->cl_time = 2; /* default (in ms ?)*/
+  x->cl_time = (1000 / 25); /* default (in ms ?)*/
   x->cl = clock_new(x, (t_method)n_sa_events);
 
   // symbols
