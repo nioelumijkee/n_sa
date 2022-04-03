@@ -95,6 +95,7 @@ typedef struct _n_sa_scope
 
   int      ox;
   int      oy;
+  int      maxy;
   int      split_x0;
   int      split_y0;
   int      split_w;
@@ -151,6 +152,7 @@ typedef struct _n_sa_spectr
 
   int      ox;
   int      oy;
+  int      maxy;
   int      split_x0;
   int      split_y0;
   int      split_w;
@@ -169,6 +171,7 @@ typedef struct _n_sa_phase
 
   int      ox;
   int      oy;
+  int      maxy;
   int      split_x0;
   int      split_y0;
   int      split_w;
@@ -309,6 +312,7 @@ void n_sa_calc_size_window(t_n_sa *x)
     {
       x->sc.ox = ox;
       x->sc.oy = x->split_w;
+      x->sc.maxy = x->sc.oy + x->sc.h;
       
       x->sc.split_x0 = ox + x->sc.w;
       x->sc.split_y0 = x->split_w;
@@ -323,6 +327,7 @@ void n_sa_calc_size_window(t_n_sa *x)
     {
       x->spectr.ox = ox;
       x->spectr.oy = x->split_w;
+      x->spectr.maxy = x->spectr.oy + x->spectr.h;
       
       x->spectr.split_x0 = ox + x->spectr.w;
       x->spectr.split_y0 = x->split_w;
@@ -337,6 +342,7 @@ void n_sa_calc_size_window(t_n_sa *x)
     {
       x->phase.ox = ox;
       x->phase.oy = x->split_w;
+      x->phase.maxy = x->phase.oy + x->phase.h;
       
       x->phase.split_x0 = ox + x->phase.w;
       x->phase.split_y0 = x->split_w;
@@ -685,7 +691,6 @@ void n_sa_redraw(t_n_sa *x)
 
       int max, min;
       int max_z, min_z;
-      int max_o, min_o;
       int x0, y0, h;
 
 
@@ -703,49 +708,49 @@ void n_sa_redraw(t_n_sa *x)
 	      for (j=0; j < x->sc.w; j++)
 		{
 
+		  // min and max
 		  min = x->sc.ch[i].min[j] * x->sc.h_half;
 		  max = x->sc.ch[i].max[j] * x->sc.h_half;
-		  
+
+		  // with z
 		  if (min > max_z)
 		    min = max_z;
 		  else if (max < min_z)
 		    max = min_z;
-		  
-		  min_o = x->sc.ch[i].c - min;
-		  max_o = x->sc.ch[i].c - max;
-		  
-		  if (min_o < 0)
-		    min_o = 0;
-		  else if (min_o > x->sc.h)
-		    min_o = x->sc.h;
-		  
-		  if (max_o < 0)
-		    max_o = 0;
-		  else if (max_o > x->sc.h)
-		    max_o = x->sc.h;
 
+		  // z
+		  min_z = min;
+		  max_z = max;
 
+		  // to display
+		  min = x->sc.ch[i].c - min;
+		  max = x->sc.ch[i].c - max;
+		  
+		  // clip coords
+		  if (min < x->sc.oy)
+		    min = x->sc.oy;
+		  else if (min > x->sc.maxy)
+		    min = x->sc.maxy;
+		  
+		  if (max < x->sc.oy)
+		    max = x->sc.oy;
+		  else if (max > x->sc.maxy)
+		    max = x->sc.maxy;
+
+		  // for func
 		  x0 = x->sc.ox + j;
-		  y0 = max_o;
-		  h = min_o - max_o;
+		  y0 = max;
+		  h = min - max;
 		  if (h < 1)
 		    {
 		      h = 1;
 		    }
 
-
 		  draw_line_ver(x->pix, x->ofs,
 				x0,
 				y0,
 				h,
-				x->ch_colors[i].color);
-		  
-		  // z
-		  min_z = min;
-		  max_z = max;
-			      
-
-		  
+				x->ch_colors[i].color);		  
 		}
 	    }
 	}
@@ -1250,7 +1255,7 @@ t_int *n_sa_perform(t_int *w)
 				{
 				  x->sc.ch[i].max_z = f;
 				}
-			      else if (x->sc.ch[i].min_z > f)
+			      if (x->sc.ch[i].min_z > f)
 				{
 				  x->sc.ch[i].min_z = f;
 				}
@@ -1436,7 +1441,7 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->v_d = getbytes(sizeof(t_int *) *(x->amount_channel + 1));
 
   // clock
-  x->cl_time = (1000 / 25); /* default (in ms ?)*/
+  x->cl_time = (1000 / 50); /* default (in ms ?)*/
   x->cl = clock_new(x, (t_method)n_sa_sdl_events);
 
   // symbols
