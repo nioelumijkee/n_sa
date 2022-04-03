@@ -48,19 +48,17 @@
 static t_class *n_sa_class;
 
 //----------------------------------------------------------------------------//
-typedef struct _n_sa_channel_colors
+typedef struct _n_sa_ch_colors
 {
   Uint32   color;
   int      i_color;
-} t_n_sa_channel_colors;
+} t_n_sa_ch_colors;
 
 //----------------------------------------------------------------------------//
-typedef struct _n_sa_channel_scope
+typedef struct _n_sa_ch_scope
 {
   int      on;
   t_float  amp;
-  /* int      center; */
-  /* int      grid_lo; */
   int      c; /* center */
   int      sep_x0;
   int      sep_y0;
@@ -70,19 +68,19 @@ typedef struct _n_sa_channel_scope
   t_float  min[SCOPE_WIDTH_MAX];
   t_float  max_z;
   t_float  min_z;
-} t_n_sa_channel_scope;
+} t_n_sa_ch_scope;
 
 //----------------------------------------------------------------------------//
-typedef struct _n_sa_channel_spectr
+typedef struct _n_sa_ch_spectr
 {
   int      on;
-} t_n_sa_channel_spectr;
+} t_n_sa_ch_spectr;
 
 //----------------------------------------------------------------------------//
-typedef struct _n_sa_channel_phase
+typedef struct _n_sa_ch_phase
 {
   int      on;
-} t_n_sa_channel_phase;
+} t_n_sa_ch_phase;
 
 //----------------------------------------------------------------------------//
 typedef struct _n_sa_scope
@@ -128,9 +126,7 @@ typedef struct _n_sa_scope
   t_float  sync_dc_f;
   t_float  sync_dc_z;
 
-  t_n_sa_channel_scope ch[CHANNEL_MAX];
-
-  int      update;
+  t_n_sa_ch_scope ch[CHANNEL_MAX];
 
   t_float  sync_z;
   int      find;
@@ -157,8 +153,6 @@ typedef struct _n_sa_spectr
   int      split_y0;
   int      split_w;
   int      split_h;
-
-  int      update;
 } t_n_sa_spectr;
 
 //----------------------------------------------------------------------------//
@@ -176,33 +170,31 @@ typedef struct _n_sa_phase
   int      split_y0;
   int      split_w;
   int      split_h;
-
-  int      update;
 } t_n_sa_phase;
 
 
 //----------------------------------------------------------------------------//
 typedef struct _n_sa
 {
-  t_object x_obj; /* pd */
-  t_outlet *x_out;
-  int s_n; /* blocksize */
-  t_float s_sr; /* sample rate */
-  t_int **v_d;      /* vector for dsp_addv */
+  t_object x_obj;  /* pd */
+  t_outlet *x_out; /* outlet */
+  int      s_n;    /* blocksize */
+  t_float  s_sr;   /* sample rate */
+  t_int    **v_d;  /* vector for dsp_addv */
 
   /* channels */
-  int amount_channel; /* body */
+  int      amount_channel;
 
   /* window */
-  int window;
-  int window_w_min;
-  int window_h_min;
-  int window_w;
-  int window_h;
-  int window_ox;
-  int window_oy;
-  int split_w;
-  int i_window_h;
+  int      window;
+  int      window_w_min;
+  int      window_h_min;
+  int      window_w;
+  int      window_h;
+  int      window_ox;
+  int      window_oy;
+  int      split_w;
+  int      i_window_h;
 
   int      split_lf_x0;
   int      split_lf_y0;
@@ -219,20 +211,20 @@ typedef struct _n_sa
   int      split_dw_w;
   int      split_dw_h;
 
-  int window_moved;
+  int      window_moved;
 
   /* colors */
-  int i_color_split;
-  int i_color_back;
-  int i_color_grid;
-  int i_color_sep;
-  int i_color_recpos;
-  Uint32 color_split;
-  Uint32 color_back;
-  Uint32 color_grid;
-  Uint32 color_sep;
-  Uint32 color_recpos;
-  t_n_sa_channel_colors ch_colors[CHANNEL_MAX];
+  int      i_color_split;
+  int      i_color_back;
+  int      i_color_grid;
+  int      i_color_sep;
+  int      i_color_recpos;
+  Uint32   color_split;
+  Uint32   color_back;
+  Uint32   color_grid;
+  Uint32   color_sep;
+  Uint32   color_recpos;
+  t_n_sa_ch_colors ch_colors[CHANNEL_MAX];
 
   /* scope */
   t_n_sa_scope sc;
@@ -372,8 +364,6 @@ void n_sa_scope_calc_sep(t_n_sa *x)
   int i;
   int all;
   int last;
-  /* int h_one; */
-  /* int h_half; */
 
   // all in's
   all = 0;
@@ -575,7 +565,7 @@ void n_sa_redraw(t_n_sa *x)
 
 
   // scope
-  if (x->sc.view /* && x->sc.update */)
+  if (x->sc.view)
     {
       // split
       draw_rect(x->pix, x->ofs,
@@ -754,15 +744,11 @@ void n_sa_redraw(t_n_sa *x)
 		}
 	    }
 	}
-
-
-      // update
-      /* x->sc.update = 0; */
     }
 
 
   // spectr
-  if (x->spectr.view /* && x->spectr.update */)
+  if (x->spectr.view)
     {
       // split
       draw_rect(x->pix, x->ofs,
@@ -779,14 +765,11 @@ void n_sa_redraw(t_n_sa *x)
 		x->spectr.w,
 		x->spectr.h,
 		x->color_back);
-
-      // update
-      x->spectr.update = 0;
     }
 
 
   // phase
-  if (x->phase.view /* && x->phase.update */)
+  if (x->phase.view)
     {
       // split
       draw_rect(x->pix, x->ofs,
@@ -803,11 +786,7 @@ void n_sa_redraw(t_n_sa *x)
 		x->phase.w,
 		x->phase.h,
 		x->color_back);
-
-      // update
-      x->phase.update = 0;
     }
-
 
   // sdl
   SDL_UpdateWindowSurface(x->win);
@@ -1177,7 +1156,6 @@ t_int *n_sa_perform(t_int *w)
       sig[i] = (t_sample *)(w[i + 2]);
     }
   int n; /* blocksize */
-
   t_float f;
   t_float in_sync;
   t_float in_sync_z = x->sc.sync_z;
@@ -1188,12 +1166,11 @@ t_int *n_sa_perform(t_int *w)
       // scope /////////////////////////////////////////////////////////////////
       if (x->sc.view)
 	{
-	  n = x->s_n;
-	  while (n--)
+	  for (n=0; n < x->s_n; n++)
 	    {
 	      
 	      // record sync in
-	      in_sync = *(sig[x->sc.sync_channel]);
+	      in_sync = sig[x->sc.sync_channel][n];
 	      
 	      // dc filter(hp 1-pole)
 	      if (x->sc.sync_dc)
@@ -1205,108 +1182,87 @@ t_int *n_sa_perform(t_int *w)
 		  in_sync = in_sync - x->sc.sync_dc_z;
 		}
 	      
-	      /* // find */
-	      /* if (x->sc.update == 0) */
-	      /* 	{ */
-
-		  // find
-		  if (x->sc.find == 0)
+	      // find
+	      if (x->sc.find == 0)
+		{
+		  // sync
+		  if      (x->sc.sync == SCOPE_SYNC_OFF)
 		    {
-		      // sync
-		      if      (x->sc.sync == SCOPE_SYNC_OFF)
+		      x->sc.find = 1;
+		    }
+		  else if (x->sc.sync == SCOPE_SYNC_UP)
+		    {
+		      if (in_sync   >  x->sc.sync_treshold &&
+			  in_sync_z <= x->sc.sync_treshold)
 			{
 			  x->sc.find = 1;
+			  x->sc.spp_count = 0;
 			}
-		      else if (x->sc.sync == SCOPE_SYNC_UP)
+		    }
+		  else if (x->sc.sync == SCOPE_SYNC_DOWN)
+		    {
+		      if (in_sync   <= x->sc.sync_treshold &&
+			  in_sync_z >  x->sc.sync_treshold)
 			{
-			  if (in_sync   >  x->sc.sync_treshold &&
-			      in_sync_z <= x->sc.sync_treshold)
+			  x->sc.find = 1;
+			  x->sc.disp_count = 0;
+			  x->sc.spp_count = 0;
+			}
+		    }
+		}
+	      
+	      // sync z
+	      in_sync_z = in_sync;
+	      
+	      // find complete. now record.
+	      if (x->sc.find)
+		{
+		  
+		  // find min max
+		  for (i=0; i < x->amount_channel; i++)
+		    {
+		      if (x->sc.ch[i].on)
+			{
+			  f = sig[i][n] * x->sc.ch[i].amp; // signal
+			  if (x->sc.ch[i].max_z < f)
 			    {
-			      x->sc.find = 1;
-			      x->sc.spp_count = 0;
+			      x->sc.ch[i].max_z = f;
 			    }
-			}
-		      else if (x->sc.sync == SCOPE_SYNC_DOWN)
-			{
-			  if (in_sync   <= x->sc.sync_treshold &&
-			      in_sync_z >  x->sc.sync_treshold)
+			  if (x->sc.ch[i].min_z > f)
 			    {
-			      x->sc.find = 1;
-			      x->sc.disp_count = 0;
-			      x->sc.spp_count = 0;
+			      x->sc.ch[i].min_z = f;
 			    }
 			}
 		    }
-
-		  // sync z
-		  in_sync_z = in_sync;
-
-		  // find complete. now record.
-		  if (x->sc.find)
+		  
+		  // count spp
+		  x->sc.spp_count++;
+		  if (x->sc.spp_count >= x->sc.spp)
 		    {
-
-		      // find min max
+		      x->sc.spp_count = 0;
+		      
 		      for (i=0; i < x->amount_channel; i++)
-		        {
+			{
 			  if (x->sc.ch[i].on)
 			    {
-			      f = *(sig[i]) * x->sc.ch[i].amp; // signal
-			      if (x->sc.ch[i].max_z < f)
-				{
-				  x->sc.ch[i].max_z = f;
-				}
-			      if (x->sc.ch[i].min_z > f)
-				{
-				  x->sc.ch[i].min_z = f;
-				}
+			      x->sc.ch[i].max[x->sc.disp_count] = x->sc.ch[i].max_z;
+			      x->sc.ch[i].max_z = SCOPE_MIN_V;
+			      
+			      x->sc.ch[i].min[x->sc.disp_count] = x->sc.ch[i].min_z;
+			      x->sc.ch[i].min_z = SCOPE_MAX_V;
 			    }
-		        }
-
-		      // count spp
-		      x->sc.spp_count++;
-		      if (x->sc.spp_count >= x->sc.spp)
-			{
-			  x->sc.spp_count = 0;
-
-			  for (i=0; i < x->amount_channel; i++)
-			    {
-			      if (x->sc.ch[i].on)
-				{
-				  x->sc.ch[i].max[x->sc.disp_count] = x->sc.ch[i].max_z;
-				  x->sc.ch[i].max_z = SCOPE_MIN_V;
-				  
-				  x->sc.ch[i].min[x->sc.disp_count] = x->sc.ch[i].min_z;
-				  x->sc.ch[i].min_z = SCOPE_MAX_V;
-				}
-			    }
-			  
-			  // count disp
-			  x->sc.disp_count++;
-			  /* x->sc.update = 1; */
-			  
-			  if (x->sc.disp_count >= x->sc.w)
-			    {
-			      x->sc.disp_count = 0;
-			      x->sc.find = 0;
-			    }
-			  
-
 			}
 		      
+		      // count disp
+		      x->sc.disp_count++;
 		      
+		      if (x->sc.disp_count >= x->sc.w)
+			{
+			  x->sc.disp_count = 0;
+			  x->sc.find = 0;
+			}
 		    }
-		  
-		  
-		/* } */
-	      
-		  // next
-		  for (i = 0; i < x->amount_channel; i++)
-		    {
-		      sig[i]++;
-		    }
-	      
-
-	      
+		}
 	    } // end dsp
 	  x->sc.sync_z = in_sync_z;
 	}
@@ -1314,32 +1270,20 @@ t_int *n_sa_perform(t_int *w)
       // spectr ////////////////////////////////////////////////////////////////
       if (x->spectr.view)
 	{
-	  n = x->s_n;
-	  // vectors !!!
-	  for (i=0; i < x->amount_channel; i++)
-	    {
-	      sig[i] -= n;
-	    }
-	  while (n--)
-	    {
-	    }
 	}
 
       // phase /////////////////////////////////////////////////////////////////
       if (x->phase.view)
 	{
-	  n = x->s_n;
-	  // vectors !!!
-	  for (i=0; i < x->amount_channel; i++)
-	    {
-	      sig[i] -= n;
-	    }
-	  while (n--)
-	    {
-	    }
 	}
     }
   
+  // next
+  for (i = 0; i < x->amount_channel; i++)
+    {
+      sig[i] += x->s_n;
+    }
+
   return (w + x->amount_channel + 2);
 }
 
@@ -1393,7 +1337,7 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->window_ox = 20;
   x->window_oy = 20;
   x->i_window_h = 200;
-  x->split_w = 4;
+  x->split_w = 2;
   /* x->i_sc_w = 200; */
   /* x->i_spectr_w = 200; */
   /* x->i_sc_view = 0; */
@@ -1417,10 +1361,6 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   /* x->sc_sync_dc = 0; */
   /* x->sc_sync_dc_freq = 1.0; */
   /* x->sc_spp = 1; */
-
-  x->sc.update = 1;
-  x->spectr.update = 1;
-  x->phase.update = 1;
 
   x->sc.sync_z = 0.0;
   x->sc.find = 0;
@@ -1457,6 +1397,11 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
 static void n_sa_free(t_n_sa *x)
 {
   freebytes(x->v_d, sizeof(t_int *) * (x->amount_channel + 1));
+  if (x->window)
+    {
+      x->window = 0;
+      n_sa_sdl_window_close(x);
+    }
 }
 
 //----------------------------------------------------------------------------//
