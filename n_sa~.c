@@ -1,13 +1,13 @@
 /*----------------------------------------------------------------------------//
                            n_sa - signal analysis tool
 
- +-+--------------------+-+--------------------------------+-+-------------+-+
- | |       SCOPE        | |            SPECTR              | |    PHASE    | |
- + +--------------------+ +--------------------------------+-+-------------+-+
- | |                    | |                                | |             | |
- | |                    | |                                | |             | |
- | |                    | |                                | |             | |
- +-+--------------------+-+--------------------------------+-+-------------+-+
+          +-+--------------------+-+--------------------------------+-+
+          | |       SCOPE        | |            SPECTR              | |
+          + +--------------------+ +--------------------------------+-+
+          | |                    | |                                | |
+          | |                    | |                                | |
+          | |                    | |                                | |
+          +-+--------------------+-+--------------------------------+-+
 
 //----------------------------------------------------------------------------*/
 #include <SDL2/SDL.h>
@@ -77,12 +77,6 @@ typedef struct _n_sa_ch_spectr
 {
   int      on;
 } t_n_sa_ch_spectr;
-
-//----------------------------------------------------------------------------//
-typedef struct _n_sa_ch_phase
-{
-  int      on;
-} t_n_sa_ch_phase;
 
 //----------------------------------------------------------------------------//
 typedef struct _n_sa_scope
@@ -163,24 +157,6 @@ typedef struct _n_sa_spectr
 } t_n_sa_spectr;
 
 //----------------------------------------------------------------------------//
-typedef struct _n_sa_phase
-{
-  int      view;
-  int      w;
-  int      h;
-  int      i_view;
-
-  int      ox;
-  int      oy;
-  int      maxy;
-  int      split_x0;
-  int      split_y0;
-  int      split_w;
-  int      split_h;
-} t_n_sa_phase;
-
-
-//----------------------------------------------------------------------------//
 typedef struct _n_sa
 {
   t_object x_obj;  /* pd */
@@ -239,9 +215,6 @@ typedef struct _n_sa
   /* spectr */
   t_n_sa_spectr spectr;
 
-  /* phase */
-  t_n_sa_phase phase;
-
   /* sdl */
   SDL_Window *win;  /* win */
   SDL_Surface *surface; /* sdl */
@@ -296,10 +269,6 @@ void n_sa_calc_size_window(t_n_sa *x)
   x->spectr.w    = x->spectr.i_w;
   x->spectr.h    = x->i_window_h;
 
-  x->phase.view  = x->phase.i_view;
-  x->phase.w     = x->i_window_h;
-  x->phase.h     = x->i_window_h;
-
   int ox = 0;
   int w = 0;
 
@@ -340,21 +309,6 @@ void n_sa_calc_size_window(t_n_sa *x)
 
       ox += x->spectr.w + x->split_w;
       w  += x->spectr.w + x->split_w;
-    }
-
-  if (x->phase.view)
-    {
-      x->phase.ox = ox;
-      x->phase.oy = x->split_w;
-      x->phase.maxy = x->phase.oy + x->phase.h;
-      
-      x->phase.split_x0 = ox + x->phase.w;
-      x->phase.split_y0 = x->split_w;
-      x->phase.split_w  = x->split_w;
-      x->phase.split_h  = x->i_window_h;
-
-      ox += x->phase.w + x->split_w;
-      w  += x->phase.w + x->split_w;
     }
 
   x->window_w = w;
@@ -788,27 +742,6 @@ void n_sa_redraw(t_n_sa *x)
 		x->color_back);
     }
 
-
-  // phase
-  if (x->phase.view)
-    {
-      // split
-      draw_rect(x->pix, x->ofs,
-		x->phase.split_x0,
-		x->phase.split_y0,
-		x->phase.split_w,
-		x->phase.split_h,
-		x->color_split);
-
-      // back
-      draw_rect(x->pix, x->ofs,
-		x->phase.ox,
-		x->phase.oy,
-		x->phase.w,
-		x->phase.h,
-		x->color_back);
-    }
-
   // sdl
   SDL_UpdateWindowSurface(x->win);
 }
@@ -1187,12 +1120,6 @@ static void n_sa_spectr_w(t_n_sa *x, t_floatarg f)
 }
 
 //----------------------------------------------------------------------------//
-static void n_sa_phase_view(t_n_sa *x, t_floatarg f)
-{
-  x->phase.i_view = (f > 0);
-}
-
-//----------------------------------------------------------------------------//
 // dsp /////////////////////////////////////////////////////////////////////////
 //----------------------------------------------------------------------------//
 t_int *n_sa_perform(t_int *w)
@@ -1341,11 +1268,6 @@ t_int *n_sa_perform(t_int *w)
       if (x->spectr.view)
 	{
 	}
-
-      // phase /////////////////////////////////////////////////////////////////
-      if (x->phase.view)
-	{
-	}
     }
   
   // next
@@ -1398,9 +1320,11 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   // create outlets
   x->x_out = outlet_new(&x->x_obj, 0);
   
-  // init
+  // init pd
   x->s_n = 64;
   x->s_sr = 44100;
+
+  // init window
   x->window = 0;
   x->window_w_min = 0;
   x->window_h_min = 100; /* for text */
@@ -1408,31 +1332,29 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->window_oy = 20;
   x->i_window_h = 200;
   x->split_w = 2;
-
   x->fps = 50;
 
-  x->sc.i_w = 200;
-  /* x->i_spectr_w = 200; */
-  /* x->i_sc_view = 0; */
-  /* x->i_spectr_view = 0; */
-  /* x->i_phase_view = 0; */
-  /* x->i_color_split = 0; */
-  /* x->i_color_back = 0; */
-  /* x->i_color_grid = 0; */
-  /* x->i_color_sep = 0; */
-  /* x->i_color_recpos = 0; */
+  // init colors
+  x->i_color_split = 0;
+  x->i_color_back = 0;
+  x->i_color_grid = 0;
+  x->i_color_sep = 0;
+  x->i_color_recpos = 0;
 
-  /* x->sc_grid_view = 0; */
-  /* x->sc_grid_ver = 0; */
-  /* x->sc_grid_hor = 0; */
-  /* x->sc_sep_view = 0; */
-  /* x->sc_recpos_view = 0; */
-  /* x->sc_separate = 0; */
-  /* x->sc_sync = 0; */
-  /* x->sc_sync_channel = 0; */
-  /* x->sc_sync_treshold = 0.0; */
-  /* x->sc_sync_dc = 0; */
-  /* x->sc_sync_dc_freq = 1.0; */
+  // init scope
+  x->sc.i_w = 200;
+  x->sc.i_view = 0;
+  x->sc.grid_view = 0;
+  x->sc.grid_ver = 0;
+  x->sc.grid_hor = 0;
+  x->sc.sep_view = 0;
+  x->sc.separate = 0;
+  x->sc.recpos_view = 0;
+  x->sc.sync = 0;
+  x->sc.sync_channel = 0;
+  x->sc.sync_treshold = 0.0;
+  x->sc.sync_dc = 0;
+  x->sc.sync_dc_freq = 1.0;
   x->sc.spp = 1;
   x->sc.freeze = 1;
 
@@ -1449,6 +1371,8 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
       x->sc.ch[i].amp = 0.0;
     }
 
+  // init spectr
+
   n_sa_calc_constant(x);
 
   // mem
@@ -1463,7 +1387,7 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->s_window_oy    = gensym("window_oy");
 
   return (x);
-  if (s) {};
+  if (s) {}; // for disable error messages ...
 }
 
 //----------------------------------------------------------------------------//
@@ -1484,6 +1408,8 @@ class_addmethod(n_sa_class,(t_method)(F),gensym((S)), 0);
 class_addmethod(n_sa_class,(t_method)(F),gensym((S)), A_FLOAT, 0);
 #define METHOD2(F,S) \
 class_addmethod(n_sa_class,(t_method)(F),gensym((S)), A_FLOAT, A_FLOAT, 0);
+#define METHODS(F,S) \
+class_addmethod(n_sa_class,(t_method)(F),gensym((S)), A_SYMBOL, 0);
 
 void n_sa_tilde_setup(void)
 {
@@ -1528,6 +1454,15 @@ void n_sa_tilde_setup(void)
   /* spectr */
   METHOD1(n_sa_spectr_view,           "spectr_view");
   METHOD1(n_sa_spectr_w,              "spectr_w");
-  /* phase */
-  METHOD1(n_sa_phase_view,            "phase_view");
+  METHOD1(n_sa_spectr_grid_view,      "spectr_grid_view");
+  METHOD1(n_sa_spectr_grid_ver,       "spectr_grid_ver");
+  METHOD1(n_sa_spectr_grid_hor,       "spectr_grid_hor");
+  METHOD1(n_sa_spectr_lin_min,        "spectr_lin_min");
+  METHOD1(n_sa_spectr_lin_max,        "spectr_lin_max");
+  METHOD1(n_sa_spectr_log_min,        "spectr_log_min");
+  METHOD1(n_sa_spectr_log_max,        "spectr_log_max");
+  METHOD1(n_sa_spectr_env,            "spectr_env");
+  METHOD1(n_sa_spectr_size,           "spectr_size");
+  METHODS(n_sa_spectr_win,            "spectr_win");
+  METHOD2(n_sa_spectr_on,             "spectr_on");
 }
