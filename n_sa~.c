@@ -12,10 +12,13 @@
 //----------------------------------------------------------------------------*/
 #include <SDL2/SDL.h>
 #include "m_pd.h"
+#include "include/clip.h"
+#include "include/constant.h"
+#include "include/conversion.h"
+#include "include/windowing.h"
 
 //----------------------------------------------------------------------------//
-#define C_PI  3.1415927
-#define C_2PI 6.2831853
+#define DEBUG(X) X
 #define CHANNEL_MAX 16
 #define WINDOW_HEIGHT_MIN 100
 #define WINDOW_HEIGHT_MAX 4096
@@ -34,17 +37,18 @@
 #define SCOPE_MIN_V -9999999.9
 #define SPECTR_WIDTH_MIN 1
 #define SPECTR_WIDTH_MAX 4096
+#define SPECTR_LIN_MIN -100.
+#define SPECTR_LIN_MAX  100.
+#define SPECTR_LOG_MIN -100.
+#define SPECTR_LOG_MAX  100.
+#define SPECTR_GRID_VER_MAX 32
+#define SPECTR_GRID_HOR_MAX 32
+#define SPECTR_SIZE_MAX 16384
+#define SPECTR_POINT_MAX 1024
 
 //----------------------------------------------------------------------------//
-#define CLIP_MINMAX(MIN, MAX, IN)		\
-  if      ((IN) < (MIN)) (IN) = (MIN);          \
-  else if ((IN) > (MAX)) (IN) = (MAX);
-
-#define CLIP_MIN(MIN, IN)			\
-  if ((IN) < (MIN))      (IN) = (MIN);
-
-#define CLIP_MAX(MAX, IN)			\
-  if ((IN) < (MAX))      (IN) = (MAX);
+void mayer_init( void);
+void mayer_term( void);
 
 //----------------------------------------------------------------------------//
 static t_class *n_sa_class;
@@ -76,6 +80,9 @@ typedef struct _n_sa_ch_scope
 typedef struct _n_sa_ch_spectr
 {
   int      on;
+  t_float  buf_r[SPECTR_SIZE_MAX];
+  t_float  buf_i[SPECTR_SIZE_MAX];
+  t_float  buf_e[SPECTR_SIZE_MAX];
 } t_n_sa_ch_spectr;
 
 //----------------------------------------------------------------------------//
@@ -154,6 +161,53 @@ typedef struct _n_sa_spectr
   int      split_y0;
   int      split_w;
   int      split_h;
+
+  int      grid_view;
+  int      grid_ver;
+  int      grid_hor;
+
+  /* grid ver */
+  int      grid_ver_x[SPECTR_GRID_VER_MAX];
+  int      grid_ver_y0;
+  int      grid_ver_all;
+  
+  /* grid hor */
+  t_float  lin_min;
+  t_float  lin_max;
+  t_float  log_min;
+  t_float  log_max;
+
+  t_float  rng_add;
+  t_float  rng_mul;
+
+  int      grid_hor_x0;
+  int      grid_hor_y[SPECTR_GRID_HOR_MAX];
+  int      grid_hor_all;
+
+  /* env */
+  t_float  env;
+  t_float  env_i;
+
+  int      size;
+  t_symbol *win;
+  float    window[SPECTR_SIZE_MAX];
+
+  int      freeze;
+
+  t_n_sa_ch_spectr ch[CHANNEL_MAX];
+
+  int      bc; /* buffer count */
+
+  int      p_all;
+  int      p_start[SPECTR_POINT_MAX];
+  int      p_end[SPECTR_POINT_MAX];
+  int      p_x0[SPECTR_POINT_MAX];
+  int      p_x1[SPECTR_POINT_MAX];
+  int      p_type[SPECTR_POINT_MAX];
+  int      p_max[SPECTR_POINT_MAX];
+  int      p_min[SPECTR_POINT_MAX];
+
+  int      update;
 } t_n_sa_spectr;
 
 //----------------------------------------------------------------------------//
@@ -213,7 +267,7 @@ typedef struct _n_sa
   t_n_sa_scope sc;
 
   /* spectr */
-  t_n_sa_spectr spectr;
+  t_n_sa_spectr sp;
 
   /* sdl */
   SDL_Window *win;  /* win */
@@ -265,9 +319,9 @@ void n_sa_calc_size_window(t_n_sa *x)
   x->sc.w     = x->sc.i_w;
   x->sc.h     = x->i_window_h;
 
-  x->spectr.view = x->spectr.i_view;
-  x->spectr.w    = x->spectr.i_w;
-  x->spectr.h    = x->i_window_h;
+  x->sp.view = x->sp.i_view;
+  x->sp.w    = x->sp.i_w;
+  x->sp.h    = x->i_window_h;
 
   int ox = 0;
   int w = 0;
@@ -296,19 +350,19 @@ void n_sa_calc_size_window(t_n_sa *x)
       w  += x->sc.w + x->split_w;
     }
 
-  if (x->spectr.view)
+  if (x->sp.view)
     {
-      x->spectr.ox = ox;
-      x->spectr.oy = x->split_w;
-      x->spectr.maxy = x->spectr.oy + x->spectr.h;
+      x->sp.ox = ox;
+      x->sp.oy = x->split_w;
+      x->sp.maxy = x->sp.oy + x->sp.h;
       
-      x->spectr.split_x0 = ox + x->spectr.w;
-      x->spectr.split_y0 = x->split_w;
-      x->spectr.split_w  = x->split_w;
-      x->spectr.split_h  = x->i_window_h;
+      x->sp.split_x0 = ox + x->sp.w;
+      x->sp.split_y0 = x->split_w;
+      x->sp.split_w  = x->split_w;
+      x->sp.split_h  = x->i_window_h;
 
-      ox += x->spectr.w + x->split_w;
-      w  += x->spectr.w + x->split_w;
+      ox += x->sp.w + x->split_w;
+      w  += x->sp.w + x->split_w;
     }
 
   x->window_w = w;
@@ -324,6 +378,8 @@ void n_sa_calc_size_window(t_n_sa *x)
   x->split_dw_h  = x->split_w;
 }
 
+//----------------------------------------------------------------------------//
+// scope ///////////////////////////////////////////////////////////////////////
 //----------------------------------------------------------------------------//
 void n_sa_scope_calc_sep(t_n_sa *x)
 {
@@ -413,6 +469,7 @@ void n_sa_scope_calc_grid_ver(t_n_sa *x)
   t_float w;
 
   x->sc.grid_ver_y0 = x->sc.oy;
+
   w = (t_float)x->sc.w / ((t_float)x->sc.grid_ver + 1.0);
   if (x->sc.grid_ver > 0)
     {
@@ -422,6 +479,344 @@ void n_sa_scope_calc_grid_ver(t_n_sa *x)
 	}
     }
 }
+
+//----------------------------------------------------------------------------//
+// spectr //////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------//
+void n_sa_spectr_calc_grid_hor_minmax(t_n_sa *x)
+{
+  t_float max;
+  t_float diff;
+
+  // calc lin
+  if (x->sp.lin_min > x->sp.lin_max)
+    {
+      max = x->sp.lin_min;
+      x->sp.lin_min = x->sp.lin_max;
+      x->sp.lin_max = max;
+    }
+
+  // calc log
+  if (x->sp.log_min > x->sp.log_max)
+    {
+      max = x->sp.log_min;
+      x->sp.log_min = x->sp.log_max;
+      x->sp.log_max = max;
+    }
+
+  // there calc mult and add
+  // lin
+  if (x->sp.grid_hor == 0)
+    {
+      diff = x->sp.lin_max - x->sp.lin_min;
+      x->sp.rng_add = 0. - x->sp.lin_min;
+      x->sp.rng_mul = 1. / diff;
+    }
+  // log
+  else
+    {
+      diff = x->sp.log_max - x->sp.log_min;
+      x->sp.rng_add = 0. - x->sp.log_min - 100.;
+      x->sp.rng_mul = 1. / diff;
+    }
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_spectr_calc_grid_hor(t_n_sa *x)
+{
+  int i;
+  t_float diff;
+  t_float step;
+  t_float f,b;
+
+ x->sp.grid_hor_x0 = x->sp.ox;
+
+  // log
+  if (x->sp.grid_hor == 1)
+    {
+      diff = x->sp.log_max - x->sp.log_min;
+      
+      if      (diff > 120)      step = 20.;
+      else if (diff > 60)       step = 10.;
+      else if (diff > 30)       step = 5.;
+      else if (diff > 15)       step = 2.5;
+      else if (diff > 6)        step = 1.;
+      else if (diff > 3)        step = 0.5;
+      else if (diff > 1.5)      step = 0.25;
+      else if (diff > 0.75)     step = 0.125;
+      else                      step = 0.125;
+      
+      i = x->sp.log_max / step;
+      if (x->sp.log_max >= 0)   f = step * i;
+      else                      f = step * (i - 1);
+      x->sp.grid_hor_all = 0;
+
+      while (f >= x->sp.log_min)
+	{
+	  b = x->sp.log_max - f;
+	  b = b / diff;
+	  x->sp.grid_hor_y[x->sp.grid_hor_all] = b * (x->sp.h + 1);
+	  x->sp.grid_hor_all++;
+	  f -= step;
+	}
+    }
+  // lin
+  else
+    {
+      diff = x->sp.lin_max - x->sp.lin_min;
+      
+      if      (diff > 120)      step = 20.;
+      else if (diff > 60)       step = 10.;
+      else if (diff > 30)       step = 5.;
+      else if (diff > 15)       step = 2.5;
+      else if (diff > 6)        step = 1.;
+      else if (diff > 3)        step = 0.5;
+      else if (diff > 1.5)      step = 0.25;
+      else if (diff > 0.75)     step = 0.125;
+      else if (diff > 0.375)    step = 0.06125;
+      else if (diff > 0.1875)   step = 0.03125;
+      else if (diff > 0.09375)  step = 0.015625;
+      else                      step = 0.015625;
+      
+      i = x->sp.lin_max / step;
+      if (x->sp.lin_max > 0)	f = step * i;
+      else                      f = step * (i - 1);
+      x->sp.grid_hor_all = 0;
+
+      while (f >= x->sp.lin_min)
+	{
+	  b = x->sp.lin_max - f;
+	  b = b / diff;
+	  x->sp.grid_hor_y[x->sp.grid_hor_all] = b * (x->sp.h + 1);
+	  x->sp.grid_hor_all++;
+	  f -= step;
+	}
+    }
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_spectr_calc_grid_ver(t_n_sa *x)
+{
+  int i,j;
+  t_float diff;
+  t_float step;
+  t_float f,b;
+  t_float min, max;
+
+  x->sp.grid_ver_y0 =  x->sp.oy; 
+
+  // log
+  if (x->sp.grid_ver == 1)
+    {
+      t_float min_freq = (x->s_sr / 2.)/ (x->s_n / 2.);
+      t_float max_freq =  x->s_sr / 2.;
+
+      F2M(min_freq, min);
+      F2M(max_freq, max);
+
+      diff = max - min;
+      step = 12.;
+            
+      i = max / step;
+      f = step * i;
+      x->sp.grid_ver_all = 0;
+
+      while (f >= min)
+	{
+	  b = max - f;
+	  b = b / diff;
+	  x->sp.grid_ver_x[x->sp.grid_ver_all] = 
+	    (x->sp.w + 1) - (b * (x->sp.w + 1)) + x->sp.ox; 
+	  x->sp.grid_ver_all++;
+	  f -= step;
+	}
+    }
+  // lin
+  else
+    {
+      j = (x->s_sr / 2.) / 2000.;
+      for(i=0; i<j; i++)
+       	{
+       	  f = i * 2000;
+       	  x->sp.grid_ver_x[i] = 
+	    (f /  (x->s_sr * 0.5)) * (x->sp.w + 1) + x->sp.ox;
+       	}
+      x->sp.grid_ver_all = j;
+    }
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_spectr_calc_env(t_n_sa *x)
+{
+  t_float f = x->sp.env - 60.;
+  f = pow(1.122, f);
+  f = f * (x->s_sr / (x->s_n * 0.5));
+  if (f < 1.)
+    f = 1.;
+  x->sp.env_i = 0.6931471824645996 / f;
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_spectr_calc_win(t_n_sa *x)
+{
+  arr_windowing(
+		x->sp.window,
+		0,
+		x->sp.size,
+		x->sp.size,
+		(char *)x->sp.win->s_name,
+		0.5);
+}
+
+//----------------------------------------------------------------------------//
+void n_sa_spectr_calc_points(t_n_sa *x)
+{
+  int i;
+  // lin
+  if (x->sp.grid_ver == 0)
+    {
+      int j;
+      t_float bs2 = x->sp.size / 2.;
+      int b_start  = 0;
+      int b_end    = bs2;
+      int b_range  = bs2;
+      t_float f;
+      t_float b_inc = bs2 / x->sp.w;
+      t_float d_mul = (t_float)x->sp.w / (t_float)b_range;
+      t_float d_add = 0. - b_start;
+
+      // init first / start end
+      x->sp.p_all = 0;
+      x->sp.p_start[x->sp.p_all] = b_start;
+      for (i = 0; i < x->sp.w; i++)
+	{
+	  f = (i * b_inc) + b_start;
+	  j = f;
+	  
+	  if (j > x->sp.p_start[x->sp.p_all])
+	    {
+	      x->sp.p_end[x->sp.p_all] = j;
+	      x->sp.p_all++;
+	      x->sp.p_start[x->sp.p_all] = j;
+	    }
+	}
+      x->sp.p_end[x->sp.p_all] = b_end;
+      x->sp.p_all++;
+
+
+      // type
+      for (i=0; i<x->sp.p_all; i++)
+	{
+	  x->sp.p_x0[i] = ((t_float)x->sp.p_start[i] + d_add) * d_mul;
+	  x->sp.p_x1[i] = ((t_float)x->sp.p_end[i]   + d_add) * d_mul;
+
+	  if (x->sp.p_x0[i] == x->sp.p_x1[i] - 1)
+	    {
+	      // type 1 '''
+	      if (x->sp.p_start[i] == x->sp.p_end[i] - 1)
+		{
+		  x->sp.p_type[i] = 1;
+		}
+	      // type 2 '"'
+	      else
+		{
+		  x->sp.p_type[i] = 2;
+		}
+	    }
+	  // type 0 '-'
+	  else
+	    {
+	      x->sp.p_type[i] = 0;
+	    }
+	}
+    }
+  // log
+  else
+    {
+      int j;
+      t_float bs2 = x->sp.size / 2.;
+      t_float sr2 = x->s_sr / 2.;
+      int b_start  = 1;
+      int b_end    = bs2;
+      t_float f_inc = sr2 / bs2;
+      t_float f_start = b_start * f_inc;
+      t_float f_end   = b_end   * f_inc;
+      t_float m_start;
+      t_float m_end;
+      t_float m_range;
+      t_float f;
+      F2M(f_start, m_start);
+      F2M(f_end, m_end);
+      m_range = m_end - m_start;
+      t_float m_inc = m_range / x->sp.w;
+
+      // init first / start end
+      x->sp.p_all = 0;
+      x->sp.p_start[x->sp.p_all] = b_start;
+      x->sp.p_x0[x->sp.p_all] = 0;
+      for (i = 0; i < x->sp.w; i++)
+	{
+	  // pitch
+	  f = (i * m_inc) + m_start;
+	  // freq
+	  M2F(f,f);
+	  // block
+	  j = (f / sr2) * bs2;
+
+	  if (j > x->sp.p_start[x->sp.p_all])
+	    {
+	      x->sp.p_end[x->sp.p_all] = j;
+	      x->sp.p_x1[x->sp.p_all] = i;
+	      x->sp.p_all++;
+	      x->sp.p_start[x->sp.p_all] = j;
+	      x->sp.p_x0[x->sp.p_all] = i;
+	    }
+	}
+      x->sp.p_end[x->sp.p_all] = b_end;
+      x->sp.p_x1[x->sp.p_all] = x->sp.w;
+      x->sp.p_all++;
+
+      // type
+      for (i=0; i<x->sp.p_all; i++)
+	{
+	  if (x->sp.p_x0[i] == x->sp.p_x1[i] - 1)
+	    {
+	      // type 1 '''
+	      if (x->sp.p_start[i] == x->sp.p_end[i] - 1)
+		{
+		  x->sp.p_type[i] = 1;
+		}
+	      // type 2 '"'
+	      else
+		{
+		  x->sp.p_type[i] = 2;
+		}
+	    }
+	  // type 0 '-'
+	  else
+	    {
+	      x->sp.p_type[i] = 0;
+	    }
+	}
+    }
+  // debug
+  DEBUG(post("[N  ] [star][ end]  [ x0 ][ x1 ]  [t]");
+	char c;
+	for (i=0; i<x->sp.p_all; i++)
+	  {
+	    if      (x->sp.p_type[i] == 0) c = '-';
+	    else if (x->sp.p_type[i] == 1) c = '\'';
+	    else                           c = '\"';
+	    post("[%3d] [%4d][%4d]  [%4d][%4d]  [%c]",
+		 i,
+		 x->sp.p_start[i],
+		 x->sp.p_end[i],
+		 x->sp.p_x0[i],
+		 x->sp.p_x1[i],
+		 c);
+	  });
+}
+
 
 //----------------------------------------------------------------------------//
 // colors //////////////////////////////////////////////////////////////////////
@@ -642,9 +1037,6 @@ void n_sa_redraw(t_n_sa *x)
 	}
 
 
-      // text
-
-
       // wave
       int max, min;
       int max_z, min_z;
@@ -708,6 +1100,7 @@ void n_sa_redraw(t_n_sa *x)
 	    }
 	}
 
+
       // recpos
       if (x->sc.recpos_view)
 	{
@@ -718,28 +1111,295 @@ void n_sa_redraw(t_n_sa *x)
 			x->color_recpos);
 	}
 
+
       x->sc.update = 0;
     }
 
-
+  
   // spectr
-  if (x->spectr.view)
+  if (x->sp.view && x->sp.update)
     {
       // split
       draw_rect(x->pix, x->ofs,
-		x->spectr.split_x0,
-		x->spectr.split_y0,
-		x->spectr.split_w,
-		x->spectr.split_h,
+		x->sp.split_x0,
+		x->sp.split_y0,
+		x->sp.split_w,
+		x->sp.split_h,
 		x->color_split);
 
+ 
       // back
       draw_rect(x->pix, x->ofs,
-		x->spectr.ox,
-		x->spectr.oy,
-		x->spectr.w,
-		x->spectr.h,
+		x->sp.ox,
+		x->sp.oy,
+		x->sp.w,
+		x->sp.h,
 		x->color_back);
+
+
+      // grid
+      if (x->sp.grid_view)
+	{
+	  // hor
+	  if (x->sp.grid_hor_all > 0)
+	    {
+	      for (i=0; i<x->sp.grid_hor_all; i++)
+		{
+		  draw_line_hor(x->pix, x->ofs,
+				x->sp.grid_hor_x0,
+				x->sp.grid_hor_y[i],
+				x->sp.w,
+				x->color_grid);
+		}
+	    }
+
+	  // ver
+	  if (x->sp.grid_ver_all > 0)
+	    {
+	      for (i=0; i<x->sp.grid_ver_all; i++)
+		{
+		  draw_line_ver(x->pix, x->ofs,
+				x->sp.grid_ver_x[i],
+				x->sp.grid_ver_y0,
+				x->sp.h,
+				x->color_grid);
+		}
+	    }
+	}
+      
+      
+      /* t_float min, max; */
+      int k;
+      int x0,x1;
+      int w;
+      t_float y0,y1;
+      t_float y;
+      t_float inc;
+      int xpos, ypos;
+      int ypos_z = 0;
+      t_float f;
+      int h = 1;
+      t_float min, max;
+      t_float min_z, max_z;
+      int type_z = x->sp.p_type[0];
+
+      // wave
+      for (i=0; i < x->amount_channel; i++)
+	{
+	  if (x->sp.ch[i].on)
+	    {
+	      for(j=0; j<x->sp.p_all-1; j++)
+		{
+		  // type '-'
+		  if (x->sp.p_type[j] == 0)
+		    {
+		      x0 = x->sp.p_x0[j];
+		      x1 = x->sp.p_x1[j];
+		      w = x1 - x0;
+		      y0 = x->sp.ch[i].buf_e[x->sp.p_start[j]];
+		      y1 = x->sp.ch[i].buf_e[x->sp.p_end[j]];
+		      inc = (y1 - y0) / (t_float)w;
+		      
+		      for (k=0; k<w; k++)
+			{
+			  y = y0 + (inc * (t_float)k);
+			  CLIP_MINMAX(0., 1., y);
+			  f = (1. - y) * (t_float)x->sp.h;
+
+			  xpos = x0 + k + x->sp.ox;
+			  ypos = f + x->sp.oy;
+
+
+			  if (j == 0 && k == 0)
+			    {
+			      ypos_z = ypos;
+			      h = 1;
+			    }
+			  else
+			    {
+			      if (ypos < ypos_z)
+				{
+				  h = ypos_z - ypos;
+				  ypos_z = ypos;
+				}
+			      else if (ypos == ypos_z)
+				{
+				  h = 1;
+				  ypos_z = ypos;
+				}
+			      else
+				{
+				  h = ypos - ypos_z;
+				  ypos = ypos_z;
+				  ypos_z = ypos + h;
+				}
+			    }
+
+			  draw_line_ver(x->pix, x->ofs,
+					xpos + x->sp.ox,
+					ypos + x->sp.oy,
+					h,
+					x->ch_colors[i].color);
+			  type_z = 0;
+			}
+		    }
+		  // type '''
+		  else if (x->sp.p_type[j] == 1)
+		    {
+		      x0 = x->sp.p_x0[j];
+		      /* x1 = x->sp.p_x1[j]; */
+		      /* w = x1 - x0; */
+		      y0 = x->sp.ch[i].buf_e[x->sp.p_start[j]];
+		      y1 = x->sp.ch[i].buf_e[x->sp.p_end[j]];
+
+		      
+		      y = y0;
+		      CLIP_MINMAX(0., 1., y);
+		      f = (1. - y) * (t_float)x->sp.h;
+		      
+		      xpos = x0 + x->sp.ox;
+		      ypos = f + x->sp.oy;
+		      
+
+		      if (j == 0)
+			{
+			  ypos_z = ypos;
+			  h = 1;
+			}
+		      else
+			{
+			  if (ypos < ypos_z)
+			    {
+			      h = ypos_z - ypos;
+			      ypos_z = ypos;
+			    }
+			  else if (ypos == ypos_z)
+			    {
+			      h = 1;
+			      ypos_z = ypos;
+			    }
+			  else
+			    {
+			      h = ypos - ypos_z - 1;
+			      ypos = ypos_z - 1;
+			      ypos_z = ypos + h;
+			    }
+			}
+		      
+		      draw_line_ver(x->pix, x->ofs,
+				    xpos + x->sp.ox,
+				    ypos + x->sp.oy,
+				    h,
+				    x->ch_colors[i].color);
+		      type_z = 1;
+		    }
+		  // type '"'
+		  else
+		    {
+		      x0 = x->sp.p_x0[j];
+		      /* x1 = x->sp.p_x1[j]; */
+		      /* w = x1 - x0; */
+
+		      /* y0 = x->sp.ch[i].buf_e[x->sp.p_start[j]]; */
+		      /* y1 = x->sp.ch[i].buf_e[x->sp.p_end[j]]; */
+
+		      k = x->sp.p_start[j];
+		      max = x->sp.ch[i].buf_e[k];
+		      min = x->sp.ch[i].buf_e[k];
+		      k++;
+		      for ( ; k < x->sp.p_end[j]; k++)
+			{
+			  if (x->sp.ch[i].buf_e[k] > max)
+			    {
+			      max = x->sp.ch[i].buf_e[k];
+			    }
+			  if (x->sp.ch[i].buf_e[k] < min)
+			    {
+			      min = x->sp.ch[i].buf_e[k];
+			    }
+			}
+		      
+		      y = min;
+		      CLIP_MINMAX(0., 1., y);
+		      min = (1. - y) * (t_float)x->sp.h;
+
+		      y = max;
+		      CLIP_MINMAX(0., 1., y);
+		      max = (1. - y) * (t_float)x->sp.h;
+		      
+		      xpos = x0 + x->sp.ox;
+		      min = min + x->sp.oy;
+		      max = max + x->sp.oy;
+
+
+		      if (j == 0)
+			{
+			  min_z = min;
+			  max_z = max;
+
+			  h = min - max;
+			  if (h < 1) h = 1;
+
+			  ypos = max;
+			}
+		      else
+			{
+			  if (type_z == 0 || type_z == 1)
+			    {
+			      min_z = ypos_z + h;
+			      max_z = ypos_z;
+
+			      // with z
+			      if (min < max_z)
+				min = max_z;
+			      else if (max > min_z)
+				max = min_z;
+
+			      h = min - max;
+			      ypos = max;
+
+			      min_z = min;
+			      max_z = max;
+
+			    }
+			  else
+			    {
+			      // with z
+			      if (min < max_z)
+				min = max_z;
+			      else if (max > min_z)
+				max = min_z;
+
+			      h = min - max;
+			      ypos = max;
+
+			      min_z = min;
+			      max_z = max;
+			    }
+			}
+
+		      CLIP_MINMAX(0, x->sp.h, ypos);
+		      
+		      draw_line_ver(x->pix, x->ofs,
+				    xpos + x->sp.ox,
+				    ypos + x->sp.oy,
+				    h,
+				    x->ch_colors[i].color);
+		      type_z = 2;
+		    }
+		}
+		  
+	      /* 	} */
+	      /* // last */
+	      /* j = x->sp.p_all - 1; */
+	      /* x0 =  x->sp.p_x0[j]; */
+	      /* y0 = x->sp.p_max[j]; */
+	      /* x1 = x->sp.p_x0[j]; */
+	      /* y1 = x->sp.p_max[j]; */
+	    }
+	}
+      
+      x->sp.update = 0;
     }
 
   // sdl
@@ -861,9 +1521,15 @@ static void n_sa_window(t_n_sa *x, t_floatarg f)
   if (x->window)
     {
       n_sa_calc_size_window(x);
+      x->sc.update = 1;
       n_sa_scope_calc_sep(x);
       n_sa_scope_calc_grid_hor(x);
       n_sa_scope_calc_grid_ver(x);
+      x->sp.update = 1;
+      n_sa_spectr_calc_points(x);
+      n_sa_spectr_calc_grid_hor_minmax(x);
+      n_sa_spectr_calc_grid_hor(x);
+      n_sa_spectr_calc_grid_ver(x);
       n_sa_sdl_window(x);
       n_sa_sdl_get_surface(x);
       n_sa_calc_colors(x);
@@ -1109,14 +1775,140 @@ static void n_sa_scope_amp(t_n_sa *x, t_floatarg ch, t_floatarg f)
 //----------------------------------------------------------------------------//
 static void n_sa_spectr_view(t_n_sa *x, t_floatarg f)
 {
-  x->spectr.i_view = (f > 0);
+  x->sp.i_view = (f > 0);
 }
 
 //----------------------------------------------------------------------------//
 static void n_sa_spectr_w(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SPECTR_WIDTH_MIN, SPECTR_WIDTH_MAX, f);
-  x->spectr.i_w = f;
+  x->sp.i_w = f;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_grid_view(t_n_sa *x, t_floatarg f)
+{
+  x->sp.grid_view = (f > 0);
+  x->sp.update = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_grid_ver(t_n_sa *x, t_floatarg f)
+{
+  x->sp.grid_ver = (f > 0);
+  n_sa_spectr_calc_points(x);
+  n_sa_spectr_calc_grid_ver(x);
+  x->sp.update = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_grid_hor(t_n_sa *x, t_floatarg f)
+{
+  x->sp.grid_hor = (f > 0);
+  n_sa_spectr_calc_grid_hor(x);
+  x->sp.update = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_lin_min(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(SPECTR_LIN_MIN, SPECTR_LIN_MAX, f);
+  x->sp.lin_min = f;
+  n_sa_spectr_calc_grid_hor_minmax(x);
+  n_sa_spectr_calc_grid_hor(x);
+  x->sp.update = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_lin_max(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(SPECTR_LIN_MIN, SPECTR_LIN_MAX, f);
+  x->sp.lin_max = f;
+  n_sa_spectr_calc_grid_hor_minmax(x);
+  n_sa_spectr_calc_grid_hor(x);
+  x->sp.update = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_log_min(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(SPECTR_LOG_MIN, SPECTR_LOG_MAX, f);
+  x->sp.log_min = f;
+  n_sa_spectr_calc_grid_hor_minmax(x);
+  n_sa_spectr_calc_grid_hor(x);
+  x->sp.update = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_log_max(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(SPECTR_LOG_MIN, SPECTR_LOG_MAX, f);
+  x->sp.log_max = f;
+  n_sa_spectr_calc_grid_hor_minmax(x);
+  n_sa_spectr_calc_grid_hor(x);
+  x->sp.update = 1;
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_env(t_n_sa *x, t_floatarg f)
+{
+  CLIP_MINMAX(-10., 100., f);
+  x->sp.env = f;
+  n_sa_spectr_calc_env(x);
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_size(t_n_sa *x, t_floatarg f)
+{
+  if (f == 64     ||
+      f == 128    ||
+      f == 256    ||
+      f == 512    ||
+      f == 1024   ||
+      f == 2048   ||
+      f == 4096   ||
+      f == 8192   ||
+      f == 16384)
+    {
+      if (f != x->sp.size)
+	{
+	  x->sp.size = f;
+	  n_sa_spectr_calc_points(x);
+	  n_sa_spectr_calc_env(x);
+	  n_sa_spectr_calc_win(x);
+	  n_sa_spectr_calc_grid_ver(x);
+	  x->sp.update = 1;
+	}
+    }
+  else 
+    {
+      post("n_sa~: bad size");
+    }
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_win(t_n_sa *x, t_symbol *s)
+{
+  x->sp.win = s;
+  n_sa_spectr_calc_win(x);
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_freeze(t_n_sa *x, t_floatarg f)
+{
+  x->sp.freeze = (f == 0);
+}
+
+//----------------------------------------------------------------------------//
+static void n_sa_spectr_on(t_n_sa *x, t_floatarg ch, t_floatarg f)
+{
+  int i = ch;
+  CLIP_MINMAX(0, x->amount_channel - 1, i);
+  x->sp.ch[i].on = (f > 0);
+  if (x->window)
+    {
+      x->sp.update = 1;
+    }
 }
 
 //----------------------------------------------------------------------------//
@@ -1124,7 +1916,7 @@ static void n_sa_spectr_w(t_n_sa *x, t_floatarg f)
 //----------------------------------------------------------------------------//
 t_int *n_sa_perform(t_int *w)
 {
-  int i;
+  int i,j;
   t_n_sa *x = (t_n_sa *)(w[1]);
   t_sample *sig[CHANNEL_MAX];  /* vector in's */
   for (i = 0; i < x->amount_channel; i++)
@@ -1136,6 +1928,8 @@ t_int *n_sa_perform(t_int *w)
   t_float in_sync;
   t_float in_sync_z = x->sc.sync_z;
   int scw;
+  t_float bsc = 1. / ((t_float)x->sp.size / 2.);
+  t_float a,b;
 
   // dsp
   if (x->window)
@@ -1242,10 +2036,12 @@ t_int *n_sa_perform(t_int *w)
 			{
 			  if (x->sc.ch[i].on)
 			    {
-			      x->sc.ch[i].max[x->sc.disp_count] = x->sc.ch[i].max_z;
+			      x->sc.ch[i].max[x->sc.disp_count] = 
+				x->sc.ch[i].max_z;
 			      x->sc.ch[i].max_z = SCOPE_MIN_V;
 			      
-			      x->sc.ch[i].min[x->sc.disp_count] = x->sc.ch[i].min_z;
+			      x->sc.ch[i].min[x->sc.disp_count] = 
+				x->sc.ch[i].min_z;
 			      x->sc.ch[i].min_z = SCOPE_MAX_V;
 			    }
 			}
@@ -1265,15 +2061,77 @@ t_int *n_sa_perform(t_int *w)
 	}
 
       // spectr ////////////////////////////////////////////////////////////////
-      if (x->spectr.view)
+      if (x->sp.view && x->sp.freeze)
 	{
+
+	  for (n=0; n < x->s_n; n++)
+	    {
+	      
+	      // dsp count
+	      for(i=0; i<x->amount_channel; i++)
+		{
+		  x->sp.ch[i].buf_r[x->sp.bc] = *(sig[i]++); // shift vec
+		}
+
+	      // procces
+	      x->sp.bc++;
+	      if (x->sp.bc >= x->sp.size)
+		{
+		  x->sp.bc = 0;
+		  x->sp.update = 1;
+		  
+		  for(i=0; i<x->amount_channel; i++)
+		    {
+		      if (x->sp.ch[i].on)
+			{
+			  // windowing
+			  for (j=0; j<x->sp.size; j++)
+			    {
+			      x->sp.ch[i].buf_r[j] = 
+				x->sp.ch[i].buf_r[j] * x->sp.window[j]; 
+			      x->sp.ch[i].buf_i[j] = 
+				x->sp.ch[i].buf_r[j];
+			    }
+			  
+			  // fft
+			  mayer_fft(x->sp.size,
+				    x->sp.ch[i].buf_r, 
+				    x->sp.ch[i].buf_i);
+			  
+			  for (j=0; j<x->sp.size / 2; j++)
+			    {
+			      // vec2a
+			      a = x->sp.ch[i].buf_r[j] * bsc;
+			      b = x->sp.ch[i].buf_i[j] * bsc;
+			      a = a * a;
+			      b = b * b;
+			      a = a + b + 1e-12;
+			      a = sqrt(a);
+			      
+			      // rms2db
+			      if (x->sp.grid_hor)
+				{
+				  RMS2DB(a, a);
+				}
+			      
+			      // mul add clip
+			      a = (a + x->sp.rng_add) * x->sp.rng_mul;
+			      CLIP_MINMAX(0., 1., a);
+			      
+			      // env
+			      b = a - x->sp.ch[i].buf_e[j];
+			      if (b < 0)
+				{
+				  b = b * x->sp.env_i;
+				  a = b + x->sp.ch[i].buf_e[j];
+				}
+			      x->sp.ch[i].buf_e[j] = a;
+			    }
+			}
+		    }
+		}
+	    }
 	}
-    }
-  
-  // next
-  for (i = 0; i < x->amount_channel; i++)
-    {
-      sig[i] += x->s_n;
     }
 
   return (w + x->amount_channel + 2);
@@ -1372,7 +2230,11 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
     }
 
   // init spectr
+  x->sp.win = gensym("none");
+  x->sp.freeze = 1;
+  x->sp.bc = 0;
 
+  // init
   n_sa_calc_constant(x);
 
   // mem
@@ -1464,5 +2326,8 @@ void n_sa_tilde_setup(void)
   METHOD1(n_sa_spectr_env,            "spectr_env");
   METHOD1(n_sa_spectr_size,           "spectr_size");
   METHODS(n_sa_spectr_win,            "spectr_win");
+  METHOD1(n_sa_spectr_freeze,         "spectr_freeze");
   METHOD2(n_sa_spectr_on,             "spectr_on");
+  /* fft */
+  mayer_init();
 }

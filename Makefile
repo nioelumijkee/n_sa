@@ -3,7 +3,7 @@ lib.name = n_sa
 cflags = 
 ldlibs = -lSDL2
 class.sources = n_sa~.c
-sources = 
+sources = ./include/*
 datafiles = \
 n_sa~-help.pd \
 n_sa~-meta.pd \
