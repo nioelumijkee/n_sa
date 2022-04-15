@@ -45,6 +45,8 @@
 #define SPECTR_GRID_HOR_MAX 32
 #define SPECTR_SIZE_MAX 16384
 #define SPECTR_POINT_MAX 1024
+#define LIN 0
+#define LOG 1
 
 //----------------------------------------------------------------------------//
 void mayer_init( void);
@@ -163,8 +165,8 @@ typedef struct _n_sa_spectr
   int      split_h;
 
   int      grid_view;
-  int      grid_ver;
-  int      grid_hor;
+  int      grid_ver; /* LIN LOG */
+  int      grid_hor; /* LIN LOG */
 
   /* grid ver */
   int      grid_ver_x[SPECTR_GRID_VER_MAX];
@@ -172,6 +174,11 @@ typedef struct _n_sa_spectr
   int      grid_ver_all;
   
   /* grid hor */
+  t_float  i_lin_min;
+  t_float  i_lin_max;
+  t_float  i_log_min;
+  t_float  i_log_max;
+
   t_float  lin_min;
   t_float  lin_max;
   t_float  log_min;
@@ -196,7 +203,7 @@ typedef struct _n_sa_spectr
 
   t_n_sa_ch_spectr ch[CHANNEL_MAX];
 
-  int      bc; /* buffer count */
+  int      buf_count; /* buffer count */
 
   int      p_all;
   int      p_start[SPECTR_POINT_MAX];
@@ -306,8 +313,13 @@ void n_sa_calc_constant(t_n_sa *x)
 {
   x->sc.sync_dc_f = x->sc.sync_dc_freq * (C_2PI / (t_float)x->s_sr);
   x->sc.sync_dc_z = 0.0;
-  x->cl_time = (1000.0 / x->fps); /* default (in ms ?)*/
+  x->sc.sync_z = 0.0;
+  x->sc.find = 0;
+  x->sc.disp_count = 0;
+  x->sc.spp_count = 0;
   x->sc.spf = x->sc.spp * x->sc.w;
+  x->cl_time = (1000.0 / x->fps); /* default (in ms ?)*/
+  x->sp.buf_count = 0;
 }
 
 //----------------------------------------------------------------------------//
@@ -485,34 +497,39 @@ void n_sa_scope_calc_grid_ver(t_n_sa *x)
 //----------------------------------------------------------------------------//
 void n_sa_spectr_calc_grid_hor_minmax(t_n_sa *x)
 {
-  t_float max;
   t_float diff;
 
-  // calc lin
-  if (x->sp.lin_min > x->sp.lin_max)
+  // maxmin lin
+  if (x->sp.i_lin_min > x->sp.i_lin_max)
     {
-      max = x->sp.lin_min;
-      x->sp.lin_min = x->sp.lin_max;
-      x->sp.lin_max = max;
+      x->sp.lin_max = x->sp.i_lin_min;
+      x->sp.lin_min = x->sp.i_lin_max;
+    }
+  else
+    {
+      x->sp.lin_max = x->sp.i_lin_max;
+      x->sp.lin_min = x->sp.i_lin_min;
     }
 
-  // calc log
-  if (x->sp.log_min > x->sp.log_max)
+  // maxmin log
+  if (x->sp.i_log_min > x->sp.i_log_max)
     {
-      max = x->sp.log_min;
-      x->sp.log_min = x->sp.log_max;
-      x->sp.log_max = max;
+      x->sp.log_max = x->sp.i_log_min;
+      x->sp.log_min = x->sp.i_log_max;
+    }
+  else
+    {
+      x->sp.log_max = x->sp.i_log_max;
+      x->sp.log_min = x->sp.i_log_min;
     }
 
   // there calc mult and add
-  // lin
-  if (x->sp.grid_hor == 0)
+  if (x->sp.grid_hor == LIN)
     {
       diff = x->sp.lin_max - x->sp.lin_min;
       x->sp.rng_add = 0. - x->sp.lin_min;
       x->sp.rng_mul = 1. / diff;
     }
-  // log
   else
     {
       diff = x->sp.log_max - x->sp.log_min;
@@ -531,8 +548,7 @@ void n_sa_spectr_calc_grid_hor(t_n_sa *x)
 
  x->sp.grid_hor_x0 = x->sp.ox;
 
-  // log
-  if (x->sp.grid_hor == 1)
+  if (x->sp.grid_hor == LOG)
     {
       diff = x->sp.log_max - x->sp.log_min;
       
@@ -560,7 +576,6 @@ void n_sa_spectr_calc_grid_hor(t_n_sa *x)
 	  f -= step;
 	}
     }
-  // lin
   else
     {
       diff = x->sp.lin_max - x->sp.lin_min;
@@ -605,10 +620,9 @@ void n_sa_spectr_calc_grid_ver(t_n_sa *x)
 
   x->sp.grid_ver_y0 =  x->sp.oy; 
 
-  // log
-  if (x->sp.grid_ver == 1)
+  if (x->sp.grid_ver == LOG)
     {
-      t_float min_freq = (x->s_sr / 2.)/ (x->s_n / 2.);
+      t_float min_freq = (x->s_sr / 2.)/ (x->sp.size / 2.);
       t_float max_freq =  x->s_sr / 2.;
 
       F2M(min_freq, min);
@@ -631,7 +645,6 @@ void n_sa_spectr_calc_grid_ver(t_n_sa *x)
 	  f -= step;
 	}
     }
-  // lin
   else
     {
       j = (x->s_sr / 2.) / 2000.;
@@ -672,8 +685,8 @@ void n_sa_spectr_calc_win(t_n_sa *x)
 void n_sa_spectr_calc_points(t_n_sa *x)
 {
   int i;
-  // lin
-  if (x->sp.grid_ver == 0)
+
+  if (x->sp.grid_ver == LIN)
     {
       int j;
       t_float bs2 = x->sp.size / 2.;
@@ -730,7 +743,6 @@ void n_sa_spectr_calc_points(t_n_sa *x)
 	    }
 	}
     }
-  // log
   else
     {
       int j;
@@ -1168,7 +1180,6 @@ void n_sa_redraw(t_n_sa *x)
 	}
       
       
-      /* t_float min, max; */
       int k;
       int x0,x1;
       int w;
@@ -1212,7 +1223,9 @@ void n_sa_redraw(t_n_sa *x)
 
 			  if (j == 0 && k == 0)
 			    {
-			      ypos_z = ypos;
+			      /* ypos_z = ypos; */
+			      min_z = ypos + 1;
+			      max_z = ypos;
 			      h = 1;
 			    }
 			  else
@@ -1268,22 +1281,64 @@ void n_sa_redraw(t_n_sa *x)
 			}
 		      else
 			{
-			  if (ypos < ypos_z)
+			  if (type_z == 0)
 			    {
-			      h = ypos_z - ypos;
-			      ypos_z = ypos;
+			      if (ypos < ypos_z)
+				{
+				  h = ypos_z - ypos;
+				  ypos_z = ypos;
+				}
+			      else if (ypos == ypos_z)
+				{
+				  h = 1;
+				  ypos_z = ypos;
+				}
+			      else
+				{
+				  h = ypos - ypos_z - 1;
+				  ypos = ypos_z + 1;
+				  ypos_z = ypos + h;
+				}
 			    }
-			  else if (ypos == ypos_z)
+			  else if (type_z == 1)
 			    {
-			      h = 1;
-			      ypos_z = ypos;
+			      if (ypos < ypos_z)
+				{
+				  h = ypos_z - ypos;
+				  ypos_z = ypos;
+				}
+			      else if (ypos == ypos_z)
+				{
+				  h = 1;
+				  ypos_z = ypos;
+				}
+			      else
+				{
+				  h = ypos - ypos_z - 1;
+				  ypos = ypos_z - 1;
+				  ypos_z = ypos + h;
+				}
 			    }
 			  else
 			    {
-			      h = ypos - ypos_z - 1;
-			      ypos = ypos_z - 1;
-			      ypos_z = ypos + h;
+			      if (ypos < ypos_z)
+				{
+				  h = ypos_z - ypos;
+				  ypos_z = ypos;
+				}
+			      else if (ypos == ypos_z)
+				{
+				  h = 1;
+				  ypos_z = ypos;
+				}
+			      else
+				{
+				  h = ypos - ypos_z - 1;
+				  ypos = ypos_z + 1;
+				  ypos_z = ypos + h;
+				}
 			    }
+
 			}
 		      
 		      draw_line_ver(x->pix, x->ofs,
@@ -1297,12 +1352,6 @@ void n_sa_redraw(t_n_sa *x)
 		  else
 		    {
 		      x0 = x->sp.p_x0[j];
-		      /* x1 = x->sp.p_x1[j]; */
-		      /* w = x1 - x0; */
-
-		      /* y0 = x->sp.ch[i].buf_e[x->sp.p_start[j]]; */
-		      /* y1 = x->sp.ch[i].buf_e[x->sp.p_end[j]]; */
-
 		      k = x->sp.p_start[j];
 		      max = x->sp.ch[i].buf_e[k];
 		      min = x->sp.ch[i].buf_e[k];
@@ -1701,12 +1750,9 @@ static void n_sa_scope_recpos_view(t_n_sa *x, t_floatarg f)
 //----------------------------------------------------------------------------//
 static void n_sa_scope_sync(t_n_sa *x, t_floatarg f)
 {
-  if      (f <= 0)
-    x->sc.sync = SCOPE_SYNC_OFF;
-  else if (f == 1)
-    x->sc.sync = SCOPE_SYNC_UP;
-  else
-    x->sc.sync = SCOPE_SYNC_DOWN;
+  if      (f <= 0)    x->sc.sync = SCOPE_SYNC_OFF;
+  else if (f == 1)    x->sc.sync = SCOPE_SYNC_UP;
+  else                x->sc.sync = SCOPE_SYNC_DOWN;
 }
 
 //----------------------------------------------------------------------------//
@@ -1795,7 +1841,8 @@ static void n_sa_spectr_grid_view(t_n_sa *x, t_floatarg f)
 //----------------------------------------------------------------------------//
 static void n_sa_spectr_grid_ver(t_n_sa *x, t_floatarg f)
 {
-  x->sp.grid_ver = (f > 0);
+  if (f > 0) x->sp.grid_ver = LOG;
+  else       x->sp.grid_ver = LIN;
   n_sa_spectr_calc_points(x);
   n_sa_spectr_calc_grid_ver(x);
   x->sp.update = 1;
@@ -1804,7 +1851,9 @@ static void n_sa_spectr_grid_ver(t_n_sa *x, t_floatarg f)
 //----------------------------------------------------------------------------//
 static void n_sa_spectr_grid_hor(t_n_sa *x, t_floatarg f)
 {
-  x->sp.grid_hor = (f > 0);
+  if (f > 0) x->sp.grid_hor = LOG;
+  else       x->sp.grid_hor = LIN;
+  n_sa_spectr_calc_grid_hor_minmax(x);
   n_sa_spectr_calc_grid_hor(x);
   x->sp.update = 1;
 }
@@ -1813,7 +1862,7 @@ static void n_sa_spectr_grid_hor(t_n_sa *x, t_floatarg f)
 static void n_sa_spectr_lin_min(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SPECTR_LIN_MIN, SPECTR_LIN_MAX, f);
-  x->sp.lin_min = f;
+  x->sp.i_lin_min = f;
   n_sa_spectr_calc_grid_hor_minmax(x);
   n_sa_spectr_calc_grid_hor(x);
   x->sp.update = 1;
@@ -1823,7 +1872,7 @@ static void n_sa_spectr_lin_min(t_n_sa *x, t_floatarg f)
 static void n_sa_spectr_lin_max(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SPECTR_LIN_MIN, SPECTR_LIN_MAX, f);
-  x->sp.lin_max = f;
+  x->sp.i_lin_max = f;
   n_sa_spectr_calc_grid_hor_minmax(x);
   n_sa_spectr_calc_grid_hor(x);
   x->sp.update = 1;
@@ -1833,7 +1882,7 @@ static void n_sa_spectr_lin_max(t_n_sa *x, t_floatarg f)
 static void n_sa_spectr_log_min(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SPECTR_LOG_MIN, SPECTR_LOG_MAX, f);
-  x->sp.log_min = f;
+  x->sp.i_log_min = f;
   n_sa_spectr_calc_grid_hor_minmax(x);
   n_sa_spectr_calc_grid_hor(x);
   x->sp.update = 1;
@@ -1843,7 +1892,7 @@ static void n_sa_spectr_log_min(t_n_sa *x, t_floatarg f)
 static void n_sa_spectr_log_max(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SPECTR_LOG_MIN, SPECTR_LOG_MAX, f);
-  x->sp.log_max = f;
+  x->sp.i_log_max = f;
   n_sa_spectr_calc_grid_hor_minmax(x);
   n_sa_spectr_calc_grid_hor(x);
   x->sp.update = 1;
@@ -2070,14 +2119,14 @@ t_int *n_sa_perform(t_int *w)
 	      // dsp count
 	      for(i=0; i<x->amount_channel; i++)
 		{
-		  x->sp.ch[i].buf_r[x->sp.bc] = *(sig[i]++); // shift vec
+		  x->sp.ch[i].buf_r[x->sp.buf_count] = *(sig[i]++); // shift vec
 		}
 
 	      // procces
-	      x->sp.bc++;
-	      if (x->sp.bc >= x->sp.size)
+	      x->sp.buf_count++;
+	      if (x->sp.buf_count >= x->sp.size)
 		{
-		  x->sp.bc = 0;
+		  x->sp.buf_count = 0;
 		  x->sp.update = 1;
 		  
 		  for(i=0; i<x->amount_channel; i++)
@@ -2147,6 +2196,9 @@ static void n_sa_dsp(t_n_sa *x, t_signal **sp)
       x->s_n = sp[0]->s_n;
       x->s_sr = sp[0]->s_sr;
       n_sa_calc_constant(x);
+      n_sa_spectr_calc_env(x);
+      n_sa_spectr_calc_points(x);
+      n_sa_spectr_calc_grid_ver(x);
     }
 
   x->v_d[0] = (t_int *)x;
@@ -2182,6 +2234,7 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->s_n = 64;
   x->s_sr = 44100;
 
+
   // init window
   x->window = 0;
   x->window_w_min = 0;
@@ -2189,50 +2242,63 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->window_ox = 20;
   x->window_oy = 20;
   x->i_window_h = 200;
-  x->split_w = 2;
+  x->split_w = 4;
   x->fps = 50;
 
-  // init colors
-  x->i_color_split = 0;
-  x->i_color_back = 0;
-  x->i_color_grid = 0;
-  x->i_color_sep = 0;
-  x->i_color_recpos = 0;
-
-  // init scope
-  x->sc.i_w = 200;
-  x->sc.i_view = 0;
-  x->sc.grid_view = 0;
-  x->sc.grid_ver = 0;
-  x->sc.grid_hor = 0;
-  x->sc.sep_view = 0;
-  x->sc.separate = 0;
-  x->sc.recpos_view = 0;
-  x->sc.sync = 0;
-  x->sc.sync_channel = 0;
-  x->sc.sync_treshold = 0.0;
-  x->sc.sync_dc = 0;
-  x->sc.sync_dc_freq = 1.0;
-  x->sc.spp = 1;
-  x->sc.freeze = 1;
-
-  x->sc.sync_z = 0.0;
-  x->sc.find = 0;
-  x->sc.disp_count = 0;
-  x->sc.spp_count = 0;
-  x->sc.update = 1;
+  // colors
+  n_sa_color_split(x, 0);
+  n_sa_color_back(x, 0);
+  n_sa_color_grid(x, 0);
+  n_sa_color_sep(x, 0);
+  n_sa_color_recpos(x, 0);
 
   for (i = 0; i < x->amount_channel; i++)
     {
-      x->ch_colors[i].i_color = 0;
-      x->sc.ch[i].on = 0;
-      x->sc.ch[i].amp = 0.0;
+      n_sa_color_ch(x, (t_float)i, 0);
     }
 
-  // init spectr
-  x->sp.win = gensym("none");
-  x->sp.freeze = 1;
-  x->sp.bc = 0;
+  // scope
+  n_sa_scope_view(x, 0);
+  n_sa_scope_w(x, 256);
+  n_sa_scope_grid_view(x, 0);
+  n_sa_scope_grid_ver(x, 1);
+  n_sa_scope_grid_hor(x, 1);
+  n_sa_scope_sep_view(x, 0);
+  n_sa_scope_separate(x, 0);
+  n_sa_scope_recpos_view(x, 0);
+  n_sa_scope_sync(x, 0);
+  n_sa_scope_sync_channel(x, 0);
+  n_sa_scope_sync_treshold(x, 0);
+  n_sa_scope_sync_dc(x, 0);
+  n_sa_scope_sync_dc_freq(x, 0);
+  n_sa_scope_spp(x, 1);
+  n_sa_scope_freeze(x, 0);
+
+  for (i = 0; i < x->amount_channel; i++)
+    {
+      n_sa_scope_on(x, (t_float)i, 0);
+      n_sa_scope_amp(x, (t_float)i, 1);
+    }
+
+  // spectr
+  n_sa_spectr_view(x, 0);
+  n_sa_spectr_w(x, 512);
+  n_sa_spectr_grid_view(x, 0);
+  n_sa_spectr_grid_ver(x, 0);
+  n_sa_spectr_grid_hor(x, 0);
+  n_sa_spectr_lin_min(x, 0);
+  n_sa_spectr_lin_max(x, 0);
+  n_sa_spectr_log_min(x, 0);
+  n_sa_spectr_log_max(x, 0);
+  n_sa_spectr_env(x, 0);
+  n_sa_spectr_size(x, 0);
+  n_sa_spectr_win(x, gensym("none"));
+  n_sa_spectr_freeze(x, 0);
+
+  for (i = 0; i < x->amount_channel; i++)
+    {
+      n_sa_spectr_on(x, (t_float)i, 0);
+    }
 
   // init
   n_sa_calc_constant(x);
