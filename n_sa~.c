@@ -231,7 +231,7 @@ typedef struct _n_sa
   int      amount_channel;
 
   /* window */
-  int      window;
+  int      window_on;
   int      window_w;
   int      window_h;
   int      window_ox;
@@ -1455,7 +1455,7 @@ void n_sa_sdl_window_close(t_n_sa *x)
 //----------------------------------------------------------------------------//
 void n_sa_sdl_get_surface(t_n_sa *x)
 {
-  if (x->window)
+  if (x->window_on)
     {
       x->surface = SDL_GetWindowSurface(x->win);
       if (x->surface == NULL)
@@ -1473,7 +1473,7 @@ void n_sa_sdl_events(t_n_sa *x)
   // clock
   clock_delay(x->cl, x->cl_time);
   // events
-  if (x->window)
+  if (x->window_on)
     {
       while (SDL_PollEvent(&x->event))
         {
@@ -1489,9 +1489,9 @@ void n_sa_sdl_events(t_n_sa *x)
 		  n_sa_output(x, x->s_window_oy, x->window_oy); 
                   break;
                 case SDL_WINDOWEVENT_CLOSE:
-		  x->window = 0;
+		  x->window_on= 0;
                   n_sa_sdl_window_close(x);
-		  n_sa_output(x, x->s_window, x->window); 
+		  n_sa_output(x, x->s_window, x->window_on); 
                   break;
                 }
               break;
@@ -1499,9 +1499,9 @@ void n_sa_sdl_events(t_n_sa *x)
               switch (x->event.key.keysym.sym)
                 {
                 case SDLK_ESCAPE:
-		  x->window = 0;
+		  x->window_on= 0;
                   n_sa_sdl_window_close(x);
-		  n_sa_output(x, x->s_window, x->window); 
+		  n_sa_output(x, x->s_window, x->window_on); 
                   break;
                 }
               break;
@@ -1511,7 +1511,7 @@ void n_sa_sdl_events(t_n_sa *x)
     }
 
   // after events
-  if (x->window)
+  if (x->window_on)
     {
       if (x->window_moved)
 	{
@@ -1529,8 +1529,10 @@ void n_sa_sdl_events(t_n_sa *x)
 //----------------------------------------------------------------------------//
 static void n_sa_window(t_n_sa *x, t_floatarg f)
 {
-  x->window = (f > 0);
-  if (x->window)
+  f = (f > 0);
+  if (x->window_on == f) return;
+  else x->window_on = f;
+  if (x->window_on)
     {
       n_sa_calc_size_window(x);
       x->sc.update = 1;
@@ -1586,7 +1588,7 @@ static void n_sa_window_fps(t_n_sa *x, t_floatarg f)
 static void n_sa_color_split(t_n_sa *x, t_floatarg f)
 {
   x->i_color_split = f * -1;
-  if (x->window)
+  if (x->window_on)
     {
       x->color_split = n_sa_color(x, x->i_color_split);
       x->sc.update = 1;
@@ -1597,7 +1599,7 @@ static void n_sa_color_split(t_n_sa *x, t_floatarg f)
 static void n_sa_color_back(t_n_sa *x, t_floatarg f)
 {
   x->i_color_back = f * -1;
-  if (x->window)
+  if (x->window_on)
     {
       x->color_back = n_sa_color(x, x->i_color_back);
       x->sc.update = 1;
@@ -1608,7 +1610,7 @@ static void n_sa_color_back(t_n_sa *x, t_floatarg f)
 static void n_sa_color_grid(t_n_sa *x, t_floatarg f)
 {
   x->i_color_grid = f * -1;
-  if (x->window)
+  if (x->window_on)
     {
       x->color_grid = n_sa_color(x, x->i_color_grid);
       x->sc.update = 1;
@@ -1619,7 +1621,7 @@ static void n_sa_color_grid(t_n_sa *x, t_floatarg f)
 static void n_sa_color_sep(t_n_sa *x, t_floatarg f)
 {
   x->i_color_sep = f * -1;
-  if (x->window)
+  if (x->window_on)
     {
       x->color_sep = n_sa_color(x, x->i_color_sep);
       x->sc.update = 1;
@@ -1630,7 +1632,7 @@ static void n_sa_color_sep(t_n_sa *x, t_floatarg f)
 static void n_sa_color_recpos(t_n_sa *x, t_floatarg f)
 {
   x->i_color_recpos = f * -1;
-  if (x->window)
+  if (x->window_on)
     {
       x->color_recpos = n_sa_color(x, x->i_color_recpos);
       x->sc.update = 1;
@@ -1643,7 +1645,7 @@ static void n_sa_color_ch(t_n_sa *x, t_floatarg ch, t_floatarg f)
   int i = ch;
   CLIP_MINMAX(0, x->amount_channel - 1, i);
   x->ch_colors[i].i_color = f * -1;
-  if (x->window)
+  if (x->window_on)
     {
       x->ch_colors[i].color = n_sa_color(x, x->ch_colors[i].i_color);
       x->sc.update = 1;
@@ -1939,7 +1941,7 @@ t_int *n_sa_perform(t_int *w)
   t_float a,b;
 
   // dsp
-  if (x->window)
+  if (x->window_on)
     {
       // scope /////////////////////////////////////////////////////////////////
       if (x->sc.view && x->sc.freeze)
@@ -2204,7 +2206,7 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   x->s_window_oy  = gensym("window_oy");
 
   // init window
-  x->window = 0;
+  x->window_on = 0;
   n_sa_window_ox(x, 100);
   n_sa_window_oy(x, 100);
   n_sa_window_h(x, 256);
@@ -2277,9 +2279,9 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
 static void n_sa_free(t_n_sa *x)
 {
   freebytes(x->v_d, sizeof(t_int *) * (x->amount_channel + 1));
-  if (x->window)
+  if (x->window_on)
     {
-      x->window = 0;
+      x->window_on = 0;
       n_sa_sdl_window_close(x);
     }
 }
