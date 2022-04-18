@@ -343,7 +343,7 @@
 #fcfcfc #000000 #000000 72.7521 256;
 #X obj 42 146 mtof;
 #X obj 102 162 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -8 0 10
-#fcfcfc #000000 #000000 546.485 256;
+#fcfcfc #000000 #000000 546.484 256;
 #X obj 183 179 ftom;
 #X msg 183 202 set \$1;
 #X obj 102 193 nbx 4 14 -100 100 0 1 empty empty pw 0 -8 0 10 #fcfcfc
@@ -641,8 +641,8 @@
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 141 s \$0-to;
 #X msg 100 119 window_h \$1;
-#X obj 100 100 nbx 4 15 100 9999 0 1 empty empty window\\\ height 48
-8 0 10 #fcfcfc #000000 #000000 256 256;
+#X obj 100 100 nbx 4 15 100 9999 0 1 empty empty window_height 48 8
+0 10 #fcfcfc #000000 #000000 100 256;
 #X obj 100 28 r \$0-from;
 #X msg 100 74 set \$1;
 #X obj 100 52 route window_h;
@@ -673,8 +673,8 @@
 #X restore 679 51 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 141 s \$0-to;
-#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty window\\\ ox 48
-8 0 10 #fcfcfc #000000 #000000 154 256;
+#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty window_ox 48 8 0
+10 #fcfcfc #000000 #000000 154 256;
 #X msg 100 119 window_ox \$1;
 #X obj 100 28 r \$0-from;
 #X obj 100 51 route window_ox;
@@ -688,8 +688,8 @@
 #X restore 265 48 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 141 s \$0-to;
-#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty window\\\ oy 48
-8 0 10 #fcfcfc #000000 #000000 33 256;
+#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty window_oy 48 8 0
+10 #fcfcfc #000000 #000000 33 256;
 #X msg 100 119 window_oy \$1;
 #X obj 100 28 r \$0-from;
 #X msg 100 74 set \$1;
@@ -1245,8 +1245,8 @@
 #X restore 472 243 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 141 s \$0-to;
-#X obj 100 100 nbx 4 15 1 256 0 1 empty empty window\\\ fps 48 8 0
-10 #fcfcfc #000000 #000000 50 256;
+#X obj 100 100 nbx 4 15 1 256 0 1 empty empty window_fps 48 8 0 10
+#fcfcfc #000000 #000000 50 256;
 #X msg 100 119 window_fps \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;

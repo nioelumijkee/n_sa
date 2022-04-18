@@ -18,7 +18,7 @@
 #include "include/windowing.h"
 
 //----------------------------------------------------------------------------//
-#define DEBUG(X) X
+#define DEBUG(X)
 #define CHANNEL_MAX 16
 #define WINDOW_HEIGHT_MIN 100
 #define WINDOW_HEIGHT_MAX 4096
@@ -2279,6 +2279,7 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
 static void n_sa_free(t_n_sa *x)
 {
   freebytes(x->v_d, sizeof(t_int *) * (x->amount_channel + 1));
+  clock_free(x->cl);
   if (x->window_on)
     {
       x->window_on = 0;
