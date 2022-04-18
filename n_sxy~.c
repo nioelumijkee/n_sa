@@ -1,10 +1,12 @@
+/* multiwave xy-scope. v0.2 */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <SDL2/SDL.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include "m_pd.h"
-#include "include/gi.c"
+
 
 #define AF_CLIP_MINMAX(MIN, MAX, IN)            \
   if      ((IN) < (MIN))  (IN) = (MIN);         \
@@ -12,9 +14,9 @@
 
 #define MAXCHANNEL 16
 
-static t_class *n_scopxy_class;
+static t_class *n_sxy_class;
 
-typedef struct _n_scopxy_channel
+typedef struct _n_sxy_channel
 {
   GLfloat *x;
   GLfloat *y;
@@ -25,47 +27,50 @@ typedef struct _n_scopxy_channel
   GLfloat cb;
   GLfloat ca;
   GLfloat lw;
-} t_n_scopxy_channel;
+} t_n_sxy_channel;
 
-typedef struct _n_scopxy
+typedef struct _n_sxy
 {
   t_object x_obj;
   t_outlet *out;               /* outlet */
   t_float sr;                  /* sample rate */
   t_clock *t;                  /* clock */
   int ttime;
+
   int window_on;               /* window */
   int window_w;
   int window_h;
   int window_w_z;
   int window_h_z;
   int window_size_changed;
-  int fullscreen;
+
   GLfloat back_cr;             /* background */
   GLfloat back_cg;
   GLfloat back_cb;
   GLfloat back_ca;
+
   int grid;                    /* grid */
   GLfloat grid_cr;
   GLfloat grid_cg;
   GLfloat grid_cb;
   GLfloat grid_ca;
   GLfloat grid_lw;
+
   SDL_Window *win;             /* win */
   SDL_GLContext glcontext;
   SDL_Event event;
-  t_gi gi;                     /* ginfo */
+
   int on;                      /* scope */
   int channel;
   int channel_all;
   int s_max;
   int s_max_1;
   int count;
-  t_n_scopxy_channel ch[MAXCHANNEL];
-} t_n_scopxy;
+  t_n_sxy_channel ch[MAXCHANNEL];
+} t_n_sxy;
 
 //----------------------------------------------------------------------------//
-void n_scopxy_redraw(t_n_scopxy *x)
+void n_sxy_redraw(t_n_sxy *x)
 {
   int i, j;
   float x_z;
@@ -134,12 +139,12 @@ void n_scopxy_redraw(t_n_scopxy *x)
 }
 
 //----------------------------------------------------------------------------//
-t_int *n_scopxy_perform(t_int *w)
+t_int *n_sxy_perform(t_int *w)
 {
-  t_n_scopxy *x = (t_n_scopxy *)(w[1]);
+  t_n_sxy *x = (t_n_sxy *)(w[1]);
   int n = (int)(w[2]);
-  t_float **in_x = getbytes(sizeof(float) * x->channel);
-  t_float **in_y = getbytes(sizeof(float) * x->channel);
+  t_float **in_x = getbytes(sizeof(t_float) * x->channel);
+  t_float **in_y = getbytes(sizeof(t_float) * x->channel);
   int i, j;
   for (i = 0; i < x->channel; i++)
     {
@@ -162,17 +167,17 @@ t_int *n_scopxy_perform(t_int *w)
           if (x->count == x->s_max)
             {
               x->count = 0;
-              n_scopxy_redraw(x);
+              n_sxy_redraw(x);
             }
         }
     }
-  freebytes(in_x, sizeof(float) * x->channel);
-  freebytes(in_y, sizeof(float) * x->channel);
+  freebytes(in_x, sizeof(t_float) * x->channel);
+  freebytes(in_y, sizeof(t_float) * x->channel);
   return (w + x->channel_all + 3);
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_calc_constant(t_n_scopxy *x)
+void n_sxy_calc_constant(t_n_sxy *x)
 {
   x->s_max = x->sr / x->ttime;
   x->s_max_1 = x->s_max - 1;
@@ -183,30 +188,30 @@ void n_scopxy_calc_constant(t_n_scopxy *x)
       x->ch[i].x = malloc(sizeof(float) * x->s_max);
       x->ch[i].y = malloc(sizeof(float) * x->s_max);
       if (x->ch[i].x == NULL || x->ch[i].y == NULL)
-        error("n_scopxy: error allocating memory");
+        error("n_sxy: error allocating memory");
     }
   x->count = 0;
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_dsp(t_n_scopxy *x, t_signal **sp)
+void n_sxy_dsp(t_n_sxy *x, t_signal **sp)
 {
   int i;
   t_int **vec = getbytes(sizeof(t_int) * (x->channel_all + 2));
   
   x->sr = sp[0]->s_sr;
-  n_scopxy_calc_constant(x);
+  n_sxy_calc_constant(x);
   
   vec[0] = (t_int *)x;
   vec[1] = (t_int *)sp[0]->s_n;
   for (i = 0; i < x->channel_all; i++)
     vec[i + 2] = (t_int *)sp[i]->s_vec;
-  dsp_addv(n_scopxy_perform, x->channel_all + 2, (t_int *)vec);
+  dsp_addv(n_sxy_perform, x->channel_all + 2, (t_int *)vec);
   freebytes(vec, sizeof(t_int) * (x->channel_all + 2));
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_output_size(t_n_scopxy *x)
+void n_sxy_output_size(t_n_sxy *x)
 {
   t_atom a[2];
   SETFLOAT(a, (t_float)x->window_w);
@@ -215,7 +220,7 @@ void n_scopxy_output_size(t_n_scopxy *x)
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_output_window(t_n_scopxy *x)
+void n_sxy_output_window(t_n_sxy *x)
 {
   t_atom a[1];
   SETFLOAT(a, (t_float)x->window_on);
@@ -223,7 +228,7 @@ void n_scopxy_output_window(t_n_scopxy *x)
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_output_save(t_n_scopxy *x, int i)
+void n_sxy_output_save(t_n_sxy *x, int i)
 {
   t_atom a[1];
   SETFLOAT(a, (t_float)i);
@@ -231,56 +236,7 @@ void n_scopxy_output_save(t_n_scopxy *x, int i)
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_outlet_gi(t_n_scopxy *x)
-{
-  int i;
-  t_atom a[10];
-  
-  SETSYMBOL(a,    gensym("opengl_ver"));
-  SETSYMBOL(a+1,  gensym(x->gi.opengl_ver));
-  outlet_anything(x->out, gensym("gi"), 2, a);
-  
-  SETSYMBOL(a,    gensym("opengl_vendor"));
-  SETSYMBOL(a+1,  gensym(x->gi.opengl_vendor));
-  outlet_anything(x->out, gensym("gi"), 2, a);
-  
-  SETSYMBOL(a,    gensym("opengl_extensions"));
-  SETSYMBOL(a+1,  gensym(x->gi.opengl_ext));
-  outlet_anything(x->out, gensym("gi"), 2, a);
-  
-  SETSYMBOL(a,    gensym("sdl_ver_compiled"));
-  SETFLOAT(a+1,   (t_float)x->gi.sdl_ver_compiled.major);
-  SETFLOAT(a+2,   (t_float)x->gi.sdl_ver_compiled.minor);
-  SETFLOAT(a+3,   (t_float)x->gi.sdl_ver_compiled.patch);
-  outlet_anything(x->out, gensym("gi"), 4, a);
-
-  SETSYMBOL(a,    gensym("sdl_ver_linked"));
-  SETFLOAT(a+1,   (t_float)x->gi.sdl_ver_linked.major);
-  SETFLOAT(a+2,   (t_float)x->gi.sdl_ver_linked.minor);
-  SETFLOAT(a+3,   (t_float)x->gi.sdl_ver_linked.patch);
-  outlet_anything(x->out, gensym("gi"), 4, a);
-
-  SETSYMBOL(a,    gensym("driver"));
-  SETSYMBOL(a+1,  gensym(x->gi.driver));
-  outlet_anything(x->out, gensym("gi"), 2, a);
-
-  for (i=0; i<x->gi.num_disp; i++)
-    {
-      SETSYMBOL(a,    gensym("display"));
-      SETFLOAT(a+1,   (t_float)i);
-      SETSYMBOL(a+2,  gensym(x->gi.display_name[i]));
-      SETFLOAT(a+3,   (t_float)x->gi.display_mode[i].w);
-      SETFLOAT(a+4,   (t_float)x->gi.display_mode[i].h);
-      SETFLOAT(a+5,   (t_float)x->gi.display_mode[i].refresh_rate);
-      SETFLOAT(a+6,   (t_float)x->gi.ddpi[i]);
-      SETFLOAT(a+7,   (t_float)x->gi.hdpi[i]);
-      SETFLOAT(a+8,   (t_float)x->gi.vdpi[i]);
-      outlet_anything(x->out, gensym("gi"), 9, a);
-    }
-}
-
-//----------------------------------------------------------------------------//
-void n_scopxy_reshape(t_n_scopxy *x)
+void n_sxy_reshape(t_n_sxy *x)
 {
   glClearColor(0., 0., 0., 0.);
   glViewport(0, 0, (GLsizei)x->window_w, (GLsizei)x->window_h);
@@ -294,7 +250,7 @@ void n_scopxy_reshape(t_n_scopxy *x)
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_window_size(t_n_scopxy *x, t_floatarg w, t_floatarg h)
+void n_sxy_window_size(t_n_sxy *x, t_floatarg w, t_floatarg h)
 {
   AF_CLIP_MINMAX(32, 4096, w);
   AF_CLIP_MINMAX(32, 4096, h);
@@ -304,42 +260,13 @@ void n_scopxy_window_size(t_n_scopxy *x, t_floatarg w, t_floatarg h)
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_window_grid(t_n_scopxy *x, t_floatarg f)
+void n_sxy_window_grid(t_n_sxy *x, t_floatarg f)
 {
   x->grid = f;
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_fullscreen(t_n_scopxy *x)
-{
-  if (x->window_on)
-    {
-      x->fullscreen = !x->fullscreen;
-      if (x->fullscreen)
-        {
-          x->window_w_z = x->window_w;
-          x->window_h_z = x->window_h;
-          x->window_w = x->gi.display_mode[0].w;
-          x->window_h = x->gi.display_mode[0].h;
-          SDL_SetWindowDisplayMode(x->win, &x->gi.display_mode[0]);
-          SDL_SetWindowFullscreen(x->win, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
-          n_scopxy_reshape(x);
-          n_scopxy_redraw(x);
-        }
-      else
-        {
-          x->window_w = x->window_w_z;
-          x->window_h = x->window_h_z;
-          SDL_SetWindowDisplayMode(x->win, &x->gi.display_mode[0]);
-          SDL_SetWindowFullscreen(x->win, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
-          n_scopxy_reshape(x);
-          n_scopxy_redraw(x);
-        }
-    }
-}
-
-//----------------------------------------------------------------------------//
-void n_scopxy_window(t_n_scopxy *x, t_floatarg f)
+void n_sxy_window(t_n_sxy *x, t_floatarg f)
 {
   x->window_on = f;
   
@@ -353,22 +280,23 @@ void n_scopxy_window(t_n_scopxy *x, t_floatarg f)
         }
       
       // window
-      if ((x->win = SDL_CreateWindow("n_scopxy~",
+      if ((x->win = SDL_CreateWindow("n_sxy~",
                                      32,
                                      32,
                                      x->window_w,
                                      x->window_h,
-                                     SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL)) == NULL)
+                                     SDL_WINDOW_SHOWN | 
+				     SDL_WINDOW_RESIZABLE | 
+				     SDL_WINDOW_OPENGL)) == NULL)
         {
           error("SDL_CreateWindow error: %s", SDL_GetError());
 	  return;
         }
       
       x->glcontext = SDL_GL_CreateContext(x->win);
-      get_gi(&x->gi);
-      x->ttime = x->gi.display_mode[0].refresh_rate / 2;
-      n_scopxy_reshape(x);
-      n_scopxy_redraw(x);
+      /* x->ttime = x->gi.display_mode[0].refresh_rate / 2; */
+      n_sxy_reshape(x);
+      n_sxy_redraw(x);
       clock_delay(x->t, x->ttime);
     }
   else
@@ -377,11 +305,11 @@ void n_scopxy_window(t_n_scopxy *x, t_floatarg f)
       SDL_Quit();
       clock_unset(x->t);
     }
-  n_scopxy_output_window(x);
+  n_sxy_output_window(x);
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_events(t_n_scopxy *x)
+void n_sxy_events(t_n_sxy *x)
 {
   clock_delay(x->t, x->ttime);
   if (x->window_on)
@@ -396,25 +324,22 @@ void n_scopxy_events(t_n_scopxy *x)
                 case SDL_WINDOWEVENT_SIZE_CHANGED:
                   x->window_w = x->event.window.data1;
                   x->window_h = x->event.window.data2;
-                  n_scopxy_reshape(x);
-                  n_scopxy_redraw(x);
+                  n_sxy_reshape(x);
+                  n_sxy_redraw(x);
                   break;
                 case SDL_WINDOWEVENT_RESIZED:
-                  n_scopxy_output_size(x);
+                  n_sxy_output_size(x);
                   break;
                 case SDL_WINDOWEVENT_CLOSE:
-                  n_scopxy_window(x, 0);
+                  n_sxy_window(x, 0);
                   break;
                 }
               break;
             case SDL_KEYDOWN:
               switch (x->event.key.keysym.sym)
                 {
-                case SDLK_F11:
-                  n_scopxy_fullscreen(x);
-                  break;
                 case SDLK_ESCAPE:
-                  n_scopxy_window(x, 0);
+                  n_sxy_window(x, 0);
                   break;
                 }
               break;
@@ -425,19 +350,17 @@ void n_scopxy_events(t_n_scopxy *x)
   //
   if (x->window_on && x->window_size_changed)
     {
-      x->gi.display_mode[0].w = x->window_w;
-      x->gi.display_mode[0].h = x->window_h;
-      SDL_SetWindowDisplayMode(x->win, &x->gi.display_mode[0]);
+      /* SDL_SetWindowDisplayMode(x->win, &x->gi.display_mode[0]); */
       SDL_SetWindowSize(x->win, x->window_w, x->window_h);
-      n_scopxy_reshape(x);
-      n_scopxy_redraw(x);
+      n_sxy_reshape(x);
+      n_sxy_redraw(x);
       x->window_size_changed = 0;
-      n_scopxy_output_size(x);
+      n_sxy_output_size(x);
     }
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_color(int color, GLfloat *r, GLfloat *g, GLfloat *b)
+void n_sxy_color(int color, GLfloat *r, GLfloat *g, GLfloat *b)
 {
   Uint8 ub = color;
   Uint8 ug = color >> 8;
@@ -448,25 +371,25 @@ void n_scopxy_color(int color, GLfloat *r, GLfloat *g, GLfloat *b)
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_on(t_n_scopxy *x, t_floatarg f)
+void n_sxy_on(t_n_sxy *x, t_floatarg f)
 {
   x->on = f;
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_set(t_n_scopxy *x, t_floatarg ch, t_floatarg color, t_floatarg a, t_floatarg lw)
+void n_sxy_set(t_n_sxy *x, t_floatarg ch, t_floatarg color, t_floatarg a, t_floatarg lw)
 {
   // background
   if (ch == -2)
     {
-      n_scopxy_color((int)color, &x->back_cr, &x->back_cg, &x->back_cb);
+      n_sxy_color((int)color, &x->back_cr, &x->back_cg, &x->back_cb);
       AF_CLIP_MINMAX(0., 1., a);
       x->back_ca = a;
     }
   // grid
   else if (ch == -1)
     {
-      n_scopxy_color((int)color, &x->grid_cr, &x->grid_cg, &x->grid_cb);
+      n_sxy_color((int)color, &x->grid_cr, &x->grid_cg, &x->grid_cb);
       AF_CLIP_MINMAX(0., 1., a);
       x->grid_ca = a;
       x->grid_lw = lw;
@@ -474,7 +397,7 @@ void n_scopxy_set(t_n_scopxy *x, t_floatarg ch, t_floatarg color, t_floatarg a, 
   // channels
   else if (ch >= 0 && ch < MAXCHANNEL)
     {
-      n_scopxy_color((int)color, &x->ch[(int)ch].cr, &x->ch[(int)ch].cg, &x->ch[(int)ch].cb);
+      n_sxy_color((int)color, &x->ch[(int)ch].cr, &x->ch[(int)ch].cg, &x->ch[(int)ch].cb);
       AF_CLIP_MINMAX(0., 1., a);
       x->ch[(int)ch].ca = a;
       x->ch[(int)ch].lw = lw;
@@ -482,7 +405,7 @@ void n_scopxy_set(t_n_scopxy *x, t_floatarg ch, t_floatarg color, t_floatarg a, 
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_save(t_n_scopxy *x, t_symbol *s)
+void n_sxy_save(t_n_sxy *x, t_symbol *s)
 {
   const int number_of_pixels = x->window_w * x->window_h * 3;
   unsigned char pixels[number_of_pixels];
@@ -496,8 +419,8 @@ void n_scopxy_save(t_n_scopxy *x, t_symbol *s)
     }
   else
     {
-      error("n_scopxy~: window");
-      n_scopxy_output_save(x, 0);
+      error("n_sxy~: window");
+      n_sxy_output_save(x, 0);
       return;
     }
   
@@ -518,22 +441,22 @@ void n_scopxy_save(t_n_scopxy *x, t_symbol *s)
       fwrite(pixels, number_of_pixels, 1, output_file);
       fclose(output_file);
       post("save to file: %s", s->s_name);
-      n_scopxy_output_save(x, 1);
+      n_sxy_output_save(x, 1);
       return;
     }
   else
     {
-      error("n_scopxy~: file can't open");
-      n_scopxy_output_save(x, 0);
+      error("n_sxy~: file can't open");
+      n_sxy_output_save(x, 0);
       return;
     }
 }
 
 //----------------------------------------------------------------------------//
-void *n_scopxy_new(t_floatarg f)
+void *n_sxy_new(t_floatarg f)
 {
   int i;
-  t_n_scopxy *x = (t_n_scopxy *)pd_new(n_scopxy_class);
+  t_n_sxy *x = (t_n_sxy *)pd_new(n_sxy_class);
   AF_CLIP_MINMAX(1, MAXCHANNEL, f);
   x->channel = f;
   x->channel_all = x->channel * 2;
@@ -548,19 +471,17 @@ void *n_scopxy_new(t_floatarg f)
   x->window_on = 0;
   x->window_w = 400;
   x->window_h = 400;
-  x->fullscreen = 0;
-  x->t = clock_new(x, (t_method)n_scopxy_events);
+  x->t = clock_new(x, (t_method)n_sxy_events);
   for (i = 0; i < x->channel; i++)
     {
       x->ch[i].x = NULL;
       x->ch[i].y = NULL;
     }
-  init_gi(&x->gi);
   return (x);
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_free(t_n_scopxy *x)
+void n_sxy_free(t_n_sxy *x)
 {
   SDL_DestroyWindow(x->win);
   SDL_Quit();
@@ -573,16 +494,43 @@ void n_scopxy_free(t_n_scopxy *x)
 }
 
 //----------------------------------------------------------------------------//
-void n_scopxy_tilde_setup(void)
+#define METHOD0(F,S) \
+class_addmethod(n_sxy_class,(t_method)(F),gensym((S)),0);
+#define METHOD1(F,S) \
+class_addmethod(n_sxy_class,(t_method)(F),gensym((S)),A_FLOAT,0);
+#define METHOD2(F,S) \
+class_addmethod(n_sxy_class,(t_method)(F),gensym((S)),A_FLOAT,A_FLOAT,0);
+#define METHOD3(F,S) \
+class_addmethod(n_sxy_class,(t_method)(F),gensym((S)),A_FLOAT,A_FLOAT,A_FLOAT,0);
+#define METHODS(F,S) \
+class_addmethod(n_sxy_class,(t_method)(F),gensym((S)),A_SYMBOL,0);
+
+void n_sxy_tilde_setup(void)
 {
-  n_scopxy_class = class_new(gensym("n_scopxy~"), (t_newmethod)n_scopxy_new, (t_method)n_scopxy_free, sizeof(t_n_scopxy), 0, A_DEFFLOAT, 0);
-  class_addmethod(n_scopxy_class, nullfn, gensym("signal"), 0);
-  class_addmethod(n_scopxy_class, (t_method)n_scopxy_dsp, gensym("dsp"), 0);
-  class_addmethod(n_scopxy_class, (t_method)n_scopxy_set, gensym("set"), A_DEFFLOAT, A_DEFFLOAT, A_DEFFLOAT, A_DEFFLOAT, 0);
-  class_addmethod(n_scopxy_class, (t_method)n_scopxy_outlet_gi, gensym("gi"), 0);
-  class_addmethod(n_scopxy_class, (t_method)n_scopxy_window, gensym("window"), A_DEFFLOAT, 0);
-  class_addmethod(n_scopxy_class, (t_method)n_scopxy_on, gensym("on"), A_DEFFLOAT, 0);
-  class_addmethod(n_scopxy_class, (t_method)n_scopxy_save, gensym("save"), A_SYMBOL, 0);
-  class_addmethod(n_scopxy_class, (t_method)n_scopxy_window_size, gensym("size"), A_DEFFLOAT, A_DEFFLOAT, 0);
-  class_addmethod(n_scopxy_class, (t_method)n_scopxy_window_grid, gensym("grid"), A_DEFFLOAT, 0);
+  n_sxy_class = class_new(gensym("n_sxy~"),
+			     (t_newmethod)n_sxy_new,
+			     (t_method)n_sxy_free, 
+			     sizeof(t_n_sxy),
+			     0, A_GIMME, 0);
+
+  METHOD0(nullfn,                      "signal");
+  METHOD0(n_sxy_dsp,                   "dsp");
+  /* window */
+  METHOD1(n_sxy_window,                "window");
+  METHOD1(n_sxy_window_ox,             "window_ox"); 
+  METHOD1(n_sxy_window_oy,             "window_oy");
+  METHOD1(n_sxy_window_w,              "window_w");
+  METHOD1(n_sxy_window_h,              "window_h");
+  METHOD1(n_sxy_window_fps,            "window_fps");
+  /* par */
+  METHOD2(n_sxy_color_back,            "par_back");
+  METHOD3(n_sxy_color_grid,            "par_grid");
+  METHOD3(n_sxy_color_ch,              "par_ch");
+  /* settings */
+  METHOD1(n_sxy_scope_grid_view,       "grid_view");
+  METHOD1(n_sxy_scope_grid_ver,        "grid_ver");
+  METHOD1(n_sxy_scope_grid_hor,        "grid_hor");
+  METHOD1(n_sxy_scope_freeze,          "freeze");
+  /* save */
+  METHODS(n_sxy_save,                  "save");
 }
