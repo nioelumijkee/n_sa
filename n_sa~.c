@@ -270,24 +270,24 @@ typedef struct _n_sa
   t_n_sa_ch_colors ch_colors[CHANNEL_MAX];
 
   /* scope */
-  t_n_sa_scope sc;
+  t_n_sa_scope   sc;
 
   /* spectr */
-  t_n_sa_spectr sp;
+  t_n_sa_spectr  sp;
 
   /* sdl */
-  SDL_Window *win;  /* win */
-  SDL_Surface *surface; /* sdl */
-  int ofs;
-  SDL_Event event;
-  Uint32 *pix;
+  SDL_Window     *win;  /* win */
+  SDL_Surface    *surface; /* sdl */
+  int            ofs;
+  SDL_Event      event;
+  Uint32         *pix;
 
   /* frame per second */
   t_float fps;
 
   /* clock */
   t_clock *cl;
-  int cl_time;
+  int      cl_time;
 
   /* symbols */
   t_symbol *s_window;
@@ -2279,12 +2279,12 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
 static void n_sa_free(t_n_sa *x)
 {
   freebytes(x->v_d, sizeof(t_int *) * (x->amount_channel + 1));
-  clock_free(x->cl);
   if (x->window_on)
     {
       x->window_on = 0;
       n_sa_sdl_window_close(x);
     }
+  clock_free(x->cl);
 }
 
 //----------------------------------------------------------------------------//
