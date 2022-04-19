@@ -708,12 +708,12 @@ void *n_sxy_new(t_symbol *s, int ac, t_atom *av)
 void n_sxy_free(t_n_sxy *x)
 {
   freebytes(x->v_d, sizeof(t_int *) * (x->amount_channel + 1));
-  clock_free(x->cl);
   if (x->window_on)
     {
       x->window_on = 0;
       n_sxy_sdl_window_close(x);
     }
+  clock_free(x->cl);
 }
 
 //----------------------------------------------------------------------------//
