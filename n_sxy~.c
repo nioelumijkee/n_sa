@@ -45,8 +45,6 @@ typedef struct _n_sxy_channel
   int on;
   GLfloat x[BUFFER_MAX];
   GLfloat y[BUFFER_MAX];
-  GLfloat x_z;
-  GLfloat y_z;
   t_n_sxy_color c;
   GLfloat w;
 } t_n_sxy_channel;
@@ -114,7 +112,8 @@ typedef struct _n_sxy
   t_symbol *s_window;
   t_symbol *s_window_ox;
   t_symbol *s_window_oy;
-
+  t_symbol *s_save;
+  t_symbol *s_redraw;
 } t_n_sxy;
 
 //----------------------------------------------------------------------------//
@@ -195,10 +194,6 @@ void n_sxy_color(t_float c, GLfloat *r, GLfloat *g, GLfloat *b)
 void n_sxy_redraw(t_n_sxy *x)
 {
   int i, j;
-  float x_z;
-  float y_z;
-
-
 
   if (x->window_on == 0 || 
       x->update == 0 ||
@@ -216,7 +211,6 @@ void n_sxy_redraw(t_n_sxy *x)
   // grid
   if (x->grid_view)
     {
-      glDisable(GL_LINE_SMOOTH);
       glColor4f(x->c_grid.r, x->c_grid.g, x->c_grid.b, x->c_grid.a);
       glLineWidth(x->w_grid);
 
@@ -246,8 +240,6 @@ void n_sxy_redraw(t_n_sxy *x)
       glVertex2f(-1.0, x->grid_hor_y_c); // x0 y0
       glVertex2f(1.0, x->grid_hor_y_c); // x1 y1 
       glEnd();
-      
-      glEnable(GL_LINE_SMOOTH);
     }
   
   // channels
@@ -257,29 +249,18 @@ void n_sxy_redraw(t_n_sxy *x)
         {
 	  if (x->ch[j].on)
 	    {
-	      glLineWidth(x->ch[j].w);
-	      x_z = x->ch[j].x_z;
-	      y_z = x->ch[j].y_z;
-	      i = 0;
-	      while (i < x->bufmax)
+	      // points
+	      glPointSize(x->ch[j].w);
+	      glColor4f(x->ch[j].c.r, 
+			x->ch[j].c.g, 
+			x->ch[j].c.b, 
+			x->ch[j].c.a);
+	      glBegin(GL_POINTS);
+	      for (i = 0; i < x->bufmax; i++)
 		{
-		  GLfloat f = x_z - x->ch[j].x[i]; // diff
-		  if (f < 0.) f = 0. - f; // abs
-		  CLIP_MINMAX(0., 1., f); // clip
-		  f = 1. - f;
-		  f = f * f * f * f;
-		  f = f * x->ch[j].c.a;
-		  glColor4f(x->ch[j].c.r, x->ch[j].c.g, x->ch[j].c.b, f);
-		  glBegin(GL_LINES);
-		  glVertex2f(x_z, y_z);
 		  glVertex2f(x->ch[j].x[i], x->ch[j].y[i]);
-		  glEnd();
-		  x_z = x->ch[j].x[i];
-		  y_z = x->ch[j].y[i];
-		  i++;
 		}
-	      x->ch[j].x_z = x_z;
-	      x->ch[j].y_z = y_z;
+	      glEnd();
 	    }
         }
     }
@@ -287,6 +268,7 @@ void n_sxy_redraw(t_n_sxy *x)
   glFlush();
   SDL_GL_SwapWindow(x->win);
   x->update = 0;
+  n_sxy_output(x, x->s_redraw, 1);
 }
 
 //----------------------------------------------------------------------------//
@@ -301,8 +283,8 @@ void n_sxy_reshape(t_n_sxy *x)
   gluOrtho2D(-1., -1., 1., 1.);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-  glEnable(GL_LINE_SMOOTH);
+  glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+  glEnable(GL_POINT_SMOOTH);
 }
 
 //----------------------------------------------------------------------------//
@@ -472,14 +454,11 @@ static void n_sxy_par_back(t_n_sxy *x,
 
 //----------------------------------------------------------------------------//
 static void n_sxy_par_grid(t_n_sxy *x,
-			 t_floatarg color,
-			 t_floatarg a,
-			 t_floatarg w)
+			 t_floatarg color)
 {
   n_sxy_color(color, &x->c_grid.r, &x->c_grid.g, &x->c_grid.b);
-  CLIP_MINMAX(0., 1., a);
-  x->c_grid.a = a;
-  x->w_grid = w;
+  x->c_grid.a = 1.0; /* constant */
+  x->w_grid = 1.0;
   x->update = 1;
 }
 
@@ -542,53 +521,59 @@ static void n_sxy_freeze(t_n_sxy *x, t_floatarg f)
 //----------------------------------------------------------------------------//
 // save ////////////////////////////////////////////////////////////////////////
 //----------------------------------------------------------------------------//
+/*     output:                   */
+/*     0 - ok.                   */
+/*     1 - window not open.      */
+/*     2 - error open file.      */
 void n_sxy_save(t_n_sxy *x, t_symbol *s)
 {
-  /* const int number_of_pixels = x->window_w * x->window_h * 3; */
-  /* unsigned char pixels[number_of_pixels]; */
-  /* FILE *output_file = NULL; */
+  const int number_of_pixels = x->window_w * x->window_h * 3;
+  unsigned char pixels[number_of_pixels];
+  FILE *output_file = NULL;
   
-  /* if (x->window_on) */
-  /*   { */
-  /*     glPixelStorei(GL_PACK_ALIGNMENT, 1); */
-  /*     glReadBuffer(GL_FRONT); */
-  /*     glReadPixels(0, 0, x->window_w, x->window_h, GL_RGB, GL_UNSIGNED_BYTE, pixels); */
-  /*   } */
-  /* else */
-  /*   { */
-  /*     error("n_sxy~: window"); */
-  /*     n_sxy_output_save(x, 0); */
-  /*     return; */
-  /*   } */
+  if (x->window_on)
+    {
+      glPixelStorei(GL_PACK_ALIGNMENT, 1);
+      glReadBuffer(GL_FRONT);
+      glReadPixels(0, 0, 
+		   x->window_w, x->window_h, 
+		   GL_RGB, 
+		   GL_UNSIGNED_BYTE, 
+		   pixels);
+    }
+  else
+    {
+      post("error: n_sxy~: window not open");
+      n_sxy_output(x, x->s_save, 1);
+      return;
+    }
   
-  /* output_file = fopen(s->s_name, "w"); */
-  /* if (output_file != NULL) */
-  /*   { */
-  /*     unsigned char size_w0 = x->window_w / 256; */
-  /*     unsigned char size_w1 = x->window_w - (size_w0 * 256); */
-  /*     unsigned char size_h0 = x->window_h / 256; */
-  /*     unsigned char size_h1 = x->window_h - (size_h0 * 256); */
-  /*     unsigned char header[] = {0, 0, 2, 0, 0, 0, 0, 0,  */
-  /*                               0, 0,  */
-  /*                               size_h1, size_h0, */
-  /*                               size_w1, size_w0, */
-  /*                               size_h1, size_h0, */
-  /*                               24, 32}; */
-  /*     fwrite(&header, sizeof(header), 1, output_file); */
-  /*     fwrite(pixels, number_of_pixels, 1, output_file); */
-  /*     fclose(output_file); */
-  /*     post("save to file: %s", s->s_name); */
-  /*     n_sxy_output_save(x, 1); */
-  /*     return; */
-  /*   } */
-  /* else */
-  /*   { */
-  /*     error("n_sxy~: file can't open"); */
-  /*     n_sxy_output_save(x, 0); */
-  /*     return; */
-  /*   } */
-  if (x) {};
-  if (s) {};
+  output_file = fopen(s->s_name, "w");
+  if (output_file != NULL)
+    {
+      unsigned char size_w0 = x->window_w / 256;
+      unsigned char size_w1 = x->window_w - (size_w0 * 256);
+      unsigned char size_h0 = x->window_h / 256;
+      unsigned char size_h1 = x->window_h - (size_h0 * 256);
+      unsigned char header[] = {0, 0, 2, 0, 0, 0, 0, 0,
+                                0, 0,
+                                size_h1, size_h0,
+                                size_w1, size_w0,
+                                size_h1, size_h0,
+                                24, 32};
+      fwrite(&header, sizeof(header), 1, output_file);
+      fwrite(pixels, number_of_pixels, 1, output_file);
+      fclose(output_file);
+      post("n_sxy~: save to file: %s", s->s_name);
+      n_sxy_output(x, x->s_save, 0);
+      return;
+    }
+  else
+    {
+      post("error: n_sxy~: file can't open: %s", s->s_name);
+      n_sxy_output(x, x->s_save, 2);
+      return;
+    }
 }
 
 //----------------------------------------------------------------------------//
@@ -622,7 +607,6 @@ t_int *n_sxy_perform(t_int *w)
           if (x->count >= x->bufmax)
             {
               x->count = 0;
-              /* n_sxy_redraw(x); */
 	      x->update = 1;
             }
         }
@@ -686,6 +670,8 @@ void *n_sxy_new(t_symbol *s, int ac, t_atom *av)
   x->s_window     = gensym("window");
   x->s_window_ox  = gensym("window_ox");
   x->s_window_oy  = gensym("window_oy");
+  x->s_save       = gensym("save");
+  x->s_redraw     = gensym("redraw");
 
   // init window
   x->window_on = 0;
@@ -697,7 +683,7 @@ void *n_sxy_new(t_symbol *s, int ac, t_atom *av)
 
   // pars
   n_sxy_par_back(x, -2.17117e+06, 0.5);
-  n_sxy_par_grid(x, -3.28965e+06, 1.0, 1.0);
+  n_sxy_par_grid(x, -3.28965e+06);
 
   for (i = 0; i < x->channel; i++)
     {
@@ -764,7 +750,7 @@ void n_sxy_tilde_setup(void)
   METHOD1(n_sxy_window_fps,            "window_fps");
   /* par */
   METHOD2(n_sxy_par_back,              "par_back");
-  METHOD3(n_sxy_par_grid,              "par_grid");
+  METHOD1(n_sxy_par_grid,              "par_grid");
   METHOD4(n_sxy_par_ch,                "par_channel");
   METHOD2(n_sxy_on,                    "on");
   /* settings */
