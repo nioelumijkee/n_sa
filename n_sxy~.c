@@ -1,12 +1,13 @@
 /* multiwave xy-scope. v0.2 */
 
 //----------------------------------------------------------------------------//
-#include <stdlib.h>
-#include <stdio.h>
+/* #include <stdlib.h> */
+/* #include <stdio.h> */
 #include <SDL2/SDL.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include "m_pd.h"
+#include "include/save.c"
 
 //----------------------------------------------------------------------------//
 #define CHANNEL_MAX 16
@@ -527,78 +528,20 @@ static void n_sxy_freeze(t_n_sxy *x, t_floatarg f)
 /*     2 - error open file.      */
 void n_sxy_save(t_n_sxy *x, t_symbol *s)
 {
-  int i,j;
-  int r,g,b;
-  int ofs, ofs_inv;
-  const int number_of_pixels = x->window_w * x->window_h * 3;
-  unsigned char pixels[number_of_pixels];
-  unsigned char pixels_inv[number_of_pixels];
-  FILE *output_file = NULL;
-  
   // get gl pixels
-  if (x->window_on)
-    {
-      glPixelStorei(GL_PACK_ALIGNMENT, 1);
-      glReadBuffer(GL_FRONT);
-      glReadPixels(0, 0, 
-		   x->window_w, x->window_h, 
-		   GL_RGB, 
-		   GL_UNSIGNED_BYTE, 
-		   pixels);
-    }
-  else
+  if (x->window_on == 0)
     {
       post("error: n_sxy~: window not open");
       n_sxy_output(x, x->s_save, 1);
       return;
     }
 
-  // reverse gl pixels
-  for (i=0; i<x->window_h; i++)
+  // save
+  int err = save_glcontent_to_file(x->window_w, x->window_h, s->s_name);
+
+  // output
+  if (err == 0)
     {
-      ofs = i * x->window_w * 3;
-      ofs_inv = (x->window_h - i - 1) * x->window_w * 3;
-      for (j=0; j<x->window_w; j++)
-	{
-	  // reverse RGB -> BGR
-	  r = j * 3;
-	  g = r + 1;
-	  b = r + 2;
-	  pixels_inv[ofs_inv+r] = pixels[ofs+b]; // r->b
-	  pixels_inv[ofs_inv+g] = pixels[ofs+g]; // g->g
-	  pixels_inv[ofs_inv+b] = pixels[ofs+r]; // b->r
-	}
-    }
-
-  // write to file TGA
-  output_file = fopen(s->s_name, "w");
-  if (output_file != NULL)
-    {
-      unsigned char size_w0 = x->window_w / 256;
-      unsigned char size_w1 = x->window_w - (size_w0 * 256);
-      unsigned char size_h0 = x->window_h / 256;
-      unsigned char size_h1 = x->window_h - (size_h0 * 256);
-      unsigned char header[] = {
-	0, // id 
-	0, // color map
-	2, // TrueColor (no map color/ no compression)
-
-	0, // for color map
-	0, 
-	0, 
-	0, 
-	0,
-
-	0, 0,             // hor
-	size_h1, size_h0, // ver
-	size_w1, size_w0, // width
-	size_h1, size_h0, // height
-	24,               // color bit depth
-	32                // image descriptor(0100000)
-      };
-      fwrite(&header, sizeof(header), 1, output_file);
-      fwrite(pixels_inv, number_of_pixels, 1, output_file);
-      fclose(output_file);
       post("n_sxy~: save to file: %s", s->s_name);
       n_sxy_output(x, x->s_save, 0);
       return;

@@ -1,4 +1,4 @@
-#N canvas 98 341 934 359 10;
+#N canvas 406 348 934 359 10;
 #N canvas 639 171 297 564 generator 0;
 #X obj -21 458 outlet~;
 #X obj -22 126 phasor~;
@@ -257,7 +257,7 @@
 #X obj 117 218 * 0.01;
 #X obj 96 236 +~ 0;
 #X obj 117 202 nbx 4 14 -9999 9999 0 1 empty empty empty 52 6 0 10
-#fcfcfc #000000 #000000 67 256;
+#fcfcfc #000000 #000000 69 256;
 #X text 712 27 ESC - close window.;
 #X text 721 8 simple XY-scope.;
 #N canvas 0 16 450 300 (subpatch) 0;
@@ -471,13 +471,13 @@
 #X obj 136 149 << 8;
 #X obj 100 149 << 16;
 #X msg 208 246 color \$1 \$1 \$1;
-#X obj 208 100 tgl 15 0 s r empty 17 7 0 10 #01cb00 #01cb00 #01cb00
+#X obj 208 100 tgl 15 0 s r empty 17 7 0 10 #b00100 #b00100 #b00100
 0 1;
 #X obj 154 228 * -1;
 #X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcc4c4
-#000000 #000000 1 256;
+#000000 #000000 176 256;
 #X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #c4fcc4
-#000000 #000000 203 256;
+#000000 #000000 1 256;
 #X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #c4fcfc
 #000000 #000000 1 256;
 #X obj 223 100 nbx 3 15 0 100 0 1 empty empty empty 0 -8 0 10 #fcfcfc
@@ -525,13 +525,13 @@
 #X obj 136 149 << 8;
 #X obj 100 149 << 16;
 #X msg 208 246 color \$1 \$1 \$1;
-#X obj 208 100 tgl 15 0 s r empty 17 7 0 10 #ffa201 #ffa201 #ffa201
+#X obj 208 100 tgl 15 0 s r empty 17 7 0 10 #01b801 #01b801 #01b801
 0 1;
 #X obj 154 228 * -1;
 #X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcc4c4
-#000000 #000000 255 256;
+#000000 #000000 1 256;
 #X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #c4fcc4
-#000000 #000000 162 256;
+#000000 #000000 184 256;
 #X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #c4fcfc
 #000000 #000000 2 256;
 #X obj 223 100 nbx 3 15 0 100 0 1 empty empty empty 0 -8 0 10 #fcfcfc
@@ -579,15 +579,15 @@
 #X obj 136 149 << 8;
 #X obj 100 149 << 16;
 #X msg 208 246 color \$1 \$1 \$1;
-#X obj 208 100 tgl 15 0 s r empty 17 7 0 10 #fc0201 #fc0201 #fc0201
+#X obj 208 100 tgl 15 0 s r empty 17 7 0 10 #0202ab #0202ab #0202ab
 0 1;
 #X obj 154 228 * -1;
 #X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcc4c4
-#000000 #000000 252 256;
+#000000 #000000 2 256;
 #X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #c4fcc4
 #000000 #000000 2 256;
 #X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #c4fcfc
-#000000 #000000 2 256;
+#000000 #000000 172 256;
 #X obj 223 100 nbx 3 15 0 100 0 1 empty empty empty 0 -8 0 10 #fcfcfc
 #000000 #000000 64 256;
 #X obj 259 100 nbx 3 15 0 10000 0 1 empty empty ch2 40 8 0 10 #bbbbbb
@@ -633,19 +633,19 @@
 #X obj 136 149 << 8;
 #X obj 100 149 << 16;
 #X msg 208 246 color \$1 \$1 \$1;
-#X obj 208 100 tgl 15 0 s r empty 17 7 0 10 #0175fe #0175fe #0175fe
+#X obj 208 100 tgl 15 0 s r empty 17 7 0 10 #b4b000 #b4b000 #b4b000
 0 1;
 #X obj 154 228 * -1;
 #X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcc4c4
-#000000 #000000 1 256;
+#000000 #000000 180 256;
 #X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #c4fcc4
-#000000 #000000 117 256;
+#000000 #000000 176 256;
 #X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #c4fcfc
-#000000 #000000 255 256;
+#000000 #000000 1 256;
 #X obj 223 100 nbx 3 15 0 100 0 1 empty empty empty 0 -8 0 10 #fcfcfc
 #000000 #000000 70 256;
 #X obj 259 100 nbx 3 15 0 10000 0 1 empty empty ch3 40 8 0 10 #bbbbbb
-#000000 #000000 246 256;
+#000000 #000000 115 256;
 #X obj 100 311 pack f f f;
 #X obj 223 279 t b f;
 #X obj 259 279 t b f;
@@ -810,7 +810,7 @@
 #X obj 102 112 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -6 0 10
 #fcfcfc #000000 #000000 89.7999 256;
 #X obj 102 128 vradio 12 1 1 6 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 2;
+#000000 #000000 1;
 #X text 113 125 _sin;
 #X text 113 137 _tri;
 #X text 113 149 _saw;
@@ -936,7 +936,7 @@
 #X obj 253 218 * 0.01;
 #X obj 232 236 +~ 0;
 #X obj 253 202 nbx 4 14 -9999 9999 0 1 empty empty empty 52 6 0 10
-#fcfcfc #000000 #000000 -39 256;
+#fcfcfc #000000 #000000 12 256;
 #N canvas 639 171 297 564 generator 0;
 #X obj -21 458 outlet~;
 #X obj -22 126 phasor~;
@@ -1068,7 +1068,7 @@
 #X obj 102 112 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -6 0 10
 #fcfcfc #000000 #000000 90.07 256;
 #X obj 102 128 vradio 12 1 1 6 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1;
+#000000 #000000 2;
 #X text 113 125 _sin;
 #X text 113 137 _tri;
 #X text 113 149 _saw;
@@ -1194,14 +1194,14 @@
 #X obj 389 218 * 0.01;
 #X obj 368 236 +~ 0;
 #X obj 389 202 nbx 4 14 -9999 9999 0 1 empty empty empty 52 6 0 10
-#fcfcfc #000000 #000000 -72 256;
+#fcfcfc #000000 #000000 -33 256;
 #N canvas 639 171 297 564 generator 0;
 #X obj -21 458 outlet~;
 #X obj -22 126 phasor~;
 #X obj 102 112 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -6 0 10
 #fcfcfc #000000 #000000 15 256;
 #X obj 102 128 vradio 12 1 1 6 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 0;
+#000000 #000000 2;
 #X text 113 125 _sin;
 #X text 113 137 _tri;
 #X text 113 149 _saw;
@@ -1299,7 +1299,7 @@
 #X obj 60 364 noise~;
 #X obj -20 435 *~ 0;
 #X obj 102 236 nbx 4 14 -100 100 0 1 empty empty amp 0 -6 0 10 #fcfcfc
-#000000 #000000 34 256;
+#000000 #000000 78 256;
 #X obj 102 418 * 0.01;
 #X connect 1 0 10 5;
 #X connect 1 0 11 0;
@@ -1324,9 +1324,9 @@
 #X obj -21 458 outlet~;
 #X obj -22 126 phasor~;
 #X obj 102 112 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -6 0 10
-#fcfcfc #000000 #000000 -15.05 256;
+#fcfcfc #000000 #000000 60 256;
 #X obj 102 128 vradio 12 1 1 6 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 0;
+#000000 #000000 3;
 #X text 113 125 _sin;
 #X text 113 137 _tri;
 #X text 113 149 _saw;
@@ -1403,7 +1403,7 @@
 #X connect 3 0 1 0;
 #X restore 19 314 pd saw;
 #X obj 102 211 nbx 4 14 -100 100 0 1 empty empty pw 0 -6 0 10 #fcfcfc
-#000000 #000000 -32 256;
+#000000 #000000 -17 256;
 #N canvas 187 372 450 300 pls 0;
 #X obj 141 24 inlet~;
 #X obj 139 201 outlet~;
@@ -1424,7 +1424,7 @@
 #X obj 60 364 noise~;
 #X obj -20 435 *~ 0;
 #X obj 102 236 nbx 4 14 -100 100 0 1 empty empty amp 0 -6 0 10 #fcfcfc
-#000000 #000000 18 256;
+#000000 #000000 15 256;
 #X obj 102 418 * 0.01;
 #X connect 1 0 10 5;
 #X connect 1 0 11 0;
@@ -1452,7 +1452,7 @@
 #X obj 526 218 * 0.01;
 #X obj 505 236 +~ 0;
 #X obj 526 202 nbx 4 14 -9999 9999 0 1 empty empty empty 52 6 0 10
-#fcfcfc #000000 #000000 10 256;
+#fcfcfc #000000 #000000 -76 256;
 #X text 65 16 -ch0-;
 #X text 205 16 -ch1-;
 #X text 344 16 -ch2-;
@@ -1496,7 +1496,7 @@
 #X restore 661 331 pd;
 #X obj 541 266 cnv 15 100 60 empty empty empty 20 12 0 14 #faff00 #404040
 0;
-#N canvas 509 43 418 418 RECORD 1;
+#N canvas 509 43 418 418 RECORD 0;
 #X obj 263 103 s \$0-to;
 #X text 273 16 Save image:;
 #X text 36 323 Record sequence:;

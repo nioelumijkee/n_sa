@@ -1,7 +1,7 @@
 #N canvas 100 100 360 360 10;
 #X text 10 10 META this is prototype of a libdir meta file;
-#X text 10 30 NAME n_scopxy~ ;
+#X text 10 30 NAME n_sxy~ ;
 #X text 10 50 AUTHOR Nioelumijke ;
-#X text 10 70 DESCRIPTION sdl2 / simple xy-scope ;
+#X text 10 70 DESCRIPTION Multiwave XY-scope ;
 #X text 10 90 LICENSE GPL v3 ;
 #X text 10 110 VERSION 0.2 ;
