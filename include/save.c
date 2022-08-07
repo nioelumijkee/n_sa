@@ -44,10 +44,10 @@ int save_glcontent_to_file(int w, int h,
   output_file = fopen(filename, "w");
   if (output_file != NULL)
     {
-      unsigned char size_w0 = w / 256;
-      unsigned char size_w1 = w - (size_w0 * 256);
-      unsigned char size_h0 = h / 256;
-      unsigned char size_h1 = h - (size_h0 * 256);
+      unsigned char size_w0 = w >> 8;
+      unsigned char size_w1 = w - (size_w0 << 8);
+      unsigned char size_h0 = h >> 8;
+      unsigned char size_h1 = h - (size_h0 << 8);
       unsigned char header[] = {
 	0, // id 
 	0, // color map
