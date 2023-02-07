@@ -1,23 +1,16 @@
-/*----------------------------------------------------------------------------//
-                           n_sa - signal analysis tool
-
-          +-+--------------------+-+--------------------------------+-+
-          | |       SCOPE        | |            SPECTR              | |
-          + +--------------------+ +--------------------------------+-+
-          | |                    | |                                | |
-          | |                    | |                                | |
-          | |                    | |                                | |
-          +-+--------------------+-+--------------------------------+-+
-
-//----------------------------------------------------------------------------*/
+/*
+  n_sa - signal analysis tool
+  +-+--------------------+-+--------------------------------+-+
+  | |       SCOPE        | |            SPECTR              | |
+  + +--------------------+ +--------------------------------+-+
+  | |                    | |                                | |
+  | |                    | |                                | |
+  | |                    | |                                | |
+  +-+--------------------+-+--------------------------------+-+
+*/
 #include <SDL2/SDL.h>
 #include "m_pd.h"
-#include "include/clip.h"
-#include "include/constant.h"
-#include "include/conversion.h"
-#include "include/windowing.h"
 
-//----------------------------------------------------------------------------//
 #define DEBUG(X)
 #define CHANNEL_MAX 16
 #define WINDOW_HEIGHT_MIN 100
@@ -48,22 +41,41 @@
 #define SPECTR_POINT_MAX 1024
 #define LIN 0
 #define LOG 1
+#define C_PI          3.1415927
+#define C_2PI         6.2831853
+#define C_LOGTEN      2.3025851
 
-//----------------------------------------------------------------------------//
-void mayer_init( void);
-void mayer_term( void);
+#define CLIP_MINMAX(MIN, MAX, IN)		\
+  if      ((IN) < (MIN)) (IN) = (MIN);		\
+  else if ((IN) > (MAX)) (IN) = (MAX);
 
-//----------------------------------------------------------------------------//
+#define CLIP_MIN(MIN, IN)			\
+  if ((IN) < (MIN)) (IN) = (MIN);
+
+#define CLIP_MAX(MAX, IN)			\
+  if ((IN) > (MAX)) (IN) = (MAX);
+
+#define M2F(IN, OUT)					\
+  (OUT) = 8.17579891564 * exp(0.0577622650 * (IN));
+
+#define F2M(IN, OUT)					\
+  (OUT) = 17.3123405046 * log(0.12231220585 * (IN));
+
+#define RMS2DB(IN, OUT)				\
+  (OUT) = 100. + 20. / C_LOGTEN * log((IN));	\
+  if ((OUT) < 0) (OUT) = 0;
+
+void mayer_init(void);
+void mayer_term(void);
+
 static t_class *n_sa_class;
 
-//----------------------------------------------------------------------------//
 typedef struct _n_sa_ch_colors
 {
   Uint32   color;
   int      i_color;
 } t_n_sa_ch_colors;
 
-//----------------------------------------------------------------------------//
 typedef struct _n_sa_ch_scope
 {
   int      on;
@@ -79,7 +91,6 @@ typedef struct _n_sa_ch_scope
   t_float  min_z;
 } t_n_sa_ch_scope;
 
-//----------------------------------------------------------------------------//
 typedef struct _n_sa_ch_spectr
 {
   int      on;
@@ -88,7 +99,6 @@ typedef struct _n_sa_ch_spectr
   t_float  buf_e[SPECTR_SIZE_MAX];
 } t_n_sa_ch_spectr;
 
-//----------------------------------------------------------------------------//
 typedef struct _n_sa_scope
 {
   int      view;
@@ -96,7 +106,6 @@ typedef struct _n_sa_scope
   int      h;
   int      i_view;
   int      i_w;
-
   int      ox;
   int      oy;
   int      maxy;
@@ -104,24 +113,18 @@ typedef struct _n_sa_scope
   int      split_y0;
   int      split_w;
   int      split_h;
-
   int      grid_view;
   int      grid_ver;
   int      grid_hor;
-
   int      grid_hor_x0;
   int      grid_hor_y_c;
   int      grid_hor_y_up[SCOPE_GRID_HOR_MAX];
   int      grid_hor_y_dw[SCOPE_GRID_HOR_MAX];
-
   int      grid_ver_x[SCOPE_GRID_VER_MAX];
   int      grid_ver_y0;
-
   int      sep_view;
   int      separate;
-
   int      recpos_view;
-
   int      sync;
   int      sync_channel;
   t_float  sync_treshold;
@@ -129,26 +132,19 @@ typedef struct _n_sa_scope
   t_float  sync_dc_freq;
   int      spp;
   int      freeze;
-
   t_float  sync_dc_f;
   t_float  sync_dc_z;
-
   t_n_sa_ch_scope ch[CHANNEL_MAX];
-
   t_float  sync_z;
   int      find;
   int      disp_count;
   int      spp_count;
-
   int      h_one;
   int      h_half;
-
   int      spf; /* samples per frame */
-
   int      update;
 } t_n_sa_scope;
 
-//----------------------------------------------------------------------------//
 typedef struct _n_sa_spectr
 {
   int      view;
@@ -156,7 +152,6 @@ typedef struct _n_sa_spectr
   int      h;
   int      i_view;
   int      i_w;
-
   int      ox;
   int      oy;
   int      maxy;
@@ -164,48 +159,36 @@ typedef struct _n_sa_spectr
   int      split_y0;
   int      split_w;
   int      split_h;
-
   int      grid_view;
   int      grid_ver; /* LIN LOG */
   int      grid_hor; /* LIN LOG */
-
   /* grid ver */
   int      grid_ver_x[SPECTR_GRID_VER_MAX];
   int      grid_ver_y0;
   int      grid_ver_all;
-  
   /* grid hor */
   t_float  i_lin_min;
   t_float  i_lin_max;
   t_float  i_log_min;
   t_float  i_log_max;
-
   t_float  lin_min;
   t_float  lin_max;
   t_float  log_min;
   t_float  log_max;
-
   t_float  rng_add;
   t_float  rng_mul;
-
   int      grid_hor_x0;
   int      grid_hor_y[SPECTR_GRID_HOR_MAX];
   int      grid_hor_all;
-
   /* env */
   t_float  env;
   t_float  env_i;
-
   int      size;
   t_symbol *win;
   float    window[SPECTR_SIZE_MAX];
-
   int      freeze;
-
   t_n_sa_ch_spectr ch[CHANNEL_MAX];
-
   int      buf_count; /* buffer count */
-
   int      p_all;
   int      p_start[SPECTR_POINT_MAX];
   int      p_end[SPECTR_POINT_MAX];
@@ -214,11 +197,9 @@ typedef struct _n_sa_spectr
   int      p_type[SPECTR_POINT_MAX];
   int      p_max[SPECTR_POINT_MAX];
   int      p_min[SPECTR_POINT_MAX];
-
   int      update;
 } t_n_sa_spectr;
 
-//----------------------------------------------------------------------------//
 typedef struct _n_sa
 {
   t_object x_obj;  /* pd */
@@ -226,10 +207,8 @@ typedef struct _n_sa
   int      s_n;    /* blocksize */
   t_float  s_sr;   /* sample rate */
   t_int    **v_d;  /* vector for dsp_addv */
-
   /* channels */
   int      amount_channel;
-
   /* window */
   int      window_on;
   int      window_w;
@@ -238,24 +217,19 @@ typedef struct _n_sa
   int      window_oy;
   int      split_w;
   int      i_window_h;
-
   int      split_lf_x0;
   int      split_lf_y0;
   int      split_lf_w;
   int      split_lf_h;
-
   int      split_up_x0;
   int      split_up_y0;
   int      split_up_w;
   int      split_up_h;
-
   int      split_dw_x0;
   int      split_dw_y0;
   int      split_dw_w;
   int      split_dw_h;
-
   int      window_moved;
-
   /* colors */
   int      i_color_split;
   int      i_color_back;
@@ -268,27 +242,21 @@ typedef struct _n_sa
   Uint32   color_sep;
   Uint32   color_recpos;
   t_n_sa_ch_colors ch_colors[CHANNEL_MAX];
-
   /* scope */
   t_n_sa_scope   sc;
-
   /* spectr */
   t_n_sa_spectr  sp;
-
   /* sdl */
   SDL_Window     *win;  /* win */
   SDL_Surface    *surface; /* sdl */
   int            ofs;
   SDL_Event      event;
   Uint32         *pix;
-
   /* frame per second */
   t_float fps;
-
   /* clock */
   t_clock *cl;
   int      cl_time;
-
   /* symbols */
   t_symbol *s_window;
   t_symbol *s_window_ox;
@@ -303,6 +271,138 @@ void n_sa_output(t_n_sa *x, t_symbol *s, int v)
   t_atom a[1];
   SETFLOAT(a, (t_float)v);
   outlet_anything(x->x_out, s, 1, a);
+}
+
+inline void n_sa_windowing(float *arr, 
+			   int start, int end, int len,
+			   char *type,
+			   float coef)
+{
+  int i;
+  float f,l,m;
+
+  if     (strcmp("bartlett", type) == 0)
+    {
+      f = len / 2.0;
+      for (i = 0; i < len; i++)
+        {
+          l = (i - f) / f;
+          if (l < 0)
+            {
+              l = 0.0 - l;
+            }
+          arr[i + start] = (1.0 - l) * coef;
+        }
+    }
+
+  else if (strcmp("blackman", type) == 0)
+    {
+      f = len / 2.0;
+      for (i = 0; i < len; i++)
+        {
+          l = (i - f) / f;
+          m = 0.5 * cos(l * C_PI);
+          l = 0.08 * cos(l * C_2PI);
+          arr[i + start] = (0.42 + l + m) * coef;
+        }
+    }
+
+  else if (strcmp("connes", type) == 0)
+    {
+      f = len / 2.0;
+      for (i = 0; i < len; i++)
+        {
+          l = (i - f) / f;
+          l = 1.0 - (l * l);
+          arr[i + start] = l * l * coef;
+        }
+    }
+
+  else if (strcmp("gaussian", type) == 0)
+    {
+      if (coef == 0)
+        {
+          for (i = 0; i < len; i++)
+            {
+              arr[i + start] = 0.0;
+            }
+        }
+      else
+        {
+          f = len / 2.0;
+          for (i = 0; i < len; i++)
+            {
+              l = (i - f) / f;
+              l = l / coef;
+              arr[i + start] = pow(2.0, (l * l * -1));
+            }
+        }
+    }
+
+  else if (strcmp("hanning", type) == 0)
+    {
+      f = len / 2.0;
+      for (i = 0; i < len; i++)
+        {
+          l = (i - f) / f;
+          arr[i + start] = (cos(l * C_PI) + 1.0) * 0.5 * coef;
+        }
+    }
+
+  else if (strcmp("hamming", type) == 0)
+    {
+      f = len / 2.0;
+      for (i = 0; i < len; i++)
+        {
+          l = (i - f) / f;
+          arr[i + start] = (0.54 + (cos(l * C_PI) * 0.46)) * coef;
+        }
+    }
+  
+  else if (strcmp("lanczos", type) == 0)
+    {
+      f = len / 2.0;
+      for (i = 0; i < len; i++)
+        {
+          l = (i - f) / f;
+          if (l == 0)
+            {
+              arr[i + start] = coef;
+            }
+          else
+            {
+              l = l * C_PI;
+              arr[i + start] = (sin(l) / l) * coef;
+            }
+        }
+    }
+
+  else if (strcmp("sin", type) == 0)
+    {
+      for (i = 0; i < len; i++)
+        {
+          l = i  / (float)len;
+          arr[i + start] = (sin(l * C_PI)) * coef;
+        }
+    }
+  
+  else if (strcmp("welch", type) == 0)
+    {
+      f = len / 2.0;
+      for (i = 0; i < len; i++)
+        {
+          l = (i - f) / f;
+          arr[i + start] = (1.0 - (l * l)) * coef;
+        }
+    }
+
+  else // none
+    {
+      for (i = start; i < end; i++)
+        {
+          arr[i] = 1.0;
+        }
+    }
 }
 
 //----------------------------------------------------------------------------//
@@ -320,7 +420,6 @@ void n_sa_calc_constant(t_n_sa *x)
   x->sp.buf_count = 0;
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_calc_size_window(t_n_sa *x)
 {
   x->window_h    = x->i_window_h + WINDOW_SPLIT + WINDOW_SPLIT;
@@ -450,7 +549,6 @@ void n_sa_scope_calc_sep(t_n_sa *x)
     }
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_scope_calc_grid_hor(t_n_sa *x)
 {
   int i;
@@ -478,7 +576,6 @@ void n_sa_scope_calc_grid_hor(t_n_sa *x)
     }
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_scope_calc_grid_ver(t_n_sa *x)
 {
   int i;
@@ -555,7 +652,6 @@ void n_sa_spectr_calc_grid_hor_minmax(t_n_sa *x)
   DEBUG(post("log_min: %8g log_max: %8g", x->sp.log_min, x->sp.log_max););
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_spectr_calc_grid_hor(t_n_sa *x)
 {
   int i;
@@ -563,7 +659,7 @@ void n_sa_spectr_calc_grid_hor(t_n_sa *x)
   t_float step;
   t_float f,b;
 
- x->sp.grid_hor_x0 = x->sp.ox;
+  x->sp.grid_hor_x0 = x->sp.ox;
 
   if (x->sp.grid_hor == LOG)
     {
@@ -626,7 +722,6 @@ void n_sa_spectr_calc_grid_hor(t_n_sa *x)
     }
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_spectr_calc_grid_ver(t_n_sa *x)
 {
   int i,j;
@@ -675,7 +770,6 @@ void n_sa_spectr_calc_grid_ver(t_n_sa *x)
     }
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_spectr_calc_env(t_n_sa *x)
 {
   t_float f = x->sp.env - 60.;
@@ -686,19 +780,17 @@ void n_sa_spectr_calc_env(t_n_sa *x)
   x->sp.env_i = 0.6931471824645996 / f;
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_spectr_calc_win(t_n_sa *x)
 {
-  arr_windowing(
-		x->sp.window,
-		0,
-		x->sp.size,
-		x->sp.size,
-		(char *)x->sp.win->s_name,
-		0.5);
+  n_sa_windowing(
+		 x->sp.window,
+		 0,
+		 x->sp.size,
+		 x->sp.size,
+		 (char *)x->sp.win->s_name,
+		 0.5);
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_spectr_calc_points(t_n_sa *x)
 {
   int i;
@@ -847,7 +939,6 @@ void n_sa_spectr_calc_points(t_n_sa *x)
 }
 
 
-//----------------------------------------------------------------------------//
 void n_sa_spectr_clear_arrays(t_n_sa *x)
 {
   int i,j;
@@ -876,7 +967,6 @@ Uint32 n_sa_color(t_n_sa *x, int color)
   return(rgb);
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_calc_colors(t_n_sa *x)
 {
   int i;
@@ -907,7 +997,6 @@ void draw_line_hor(Uint32 *pix, int ofs, int x0, int y0, int w, Uint32 col)
     }
 }
 
-//----------------------------------------------------------------------------//
 void draw_line_ver(Uint32 *pix, int ofs, int x0, int y0, int h, Uint32 col)
 {
   int y;
@@ -921,7 +1010,6 @@ void draw_line_ver(Uint32 *pix, int ofs, int x0, int y0, int h, Uint32 col)
     }
 }
 
-//----------------------------------------------------------------------------//
 void draw_rect(Uint32 *pix, int ofs, int x0, int y0, int w, int h, Uint32 col)
 {
   int x,y;
@@ -1443,7 +1531,6 @@ void n_sa_sdl_window(t_n_sa *x)
   clock_delay(x->cl, x->cl_time);
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_sdl_window_close(t_n_sa *x)
 {
   // clock
@@ -1452,7 +1539,6 @@ void n_sa_sdl_window_close(t_n_sa *x)
   SDL_Quit();
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_sdl_get_surface(t_n_sa *x)
 {
   if (x->window_on)
@@ -1467,7 +1553,6 @@ void n_sa_sdl_get_surface(t_n_sa *x)
     }
 }
 
-//----------------------------------------------------------------------------//
 void n_sa_sdl_events(t_n_sa *x)
 {
   // clock
@@ -1555,28 +1640,24 @@ static void n_sa_window(t_n_sa *x, t_floatarg f)
     }
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_window_ox(t_n_sa *x, t_floatarg f)
 {
   x->window_ox = f;
   x->window_moved = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_window_oy(t_n_sa *x, t_floatarg f)
 {
   x->window_oy = f;
   x->window_moved = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_window_h(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(WINDOW_HEIGHT_MIN, WINDOW_HEIGHT_MAX, f);
   x->i_window_h = f;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_window_fps(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(WINDOW_FPS_MIN, WINDOW_FPS_MAX, f);
@@ -1584,7 +1665,6 @@ static void n_sa_window_fps(t_n_sa *x, t_floatarg f)
   x->cl_time = (1000.0 / x->fps); /* default (in ms ?)*/
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_color_split(t_n_sa *x, t_floatarg f)
 {
   x->i_color_split = f * -1;
@@ -1595,7 +1675,6 @@ static void n_sa_color_split(t_n_sa *x, t_floatarg f)
     }
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_color_back(t_n_sa *x, t_floatarg f)
 {
   x->i_color_back = f * -1;
@@ -1606,7 +1685,6 @@ static void n_sa_color_back(t_n_sa *x, t_floatarg f)
     }
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_color_grid(t_n_sa *x, t_floatarg f)
 {
   x->i_color_grid = f * -1;
@@ -1617,7 +1695,6 @@ static void n_sa_color_grid(t_n_sa *x, t_floatarg f)
     }
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_color_sep(t_n_sa *x, t_floatarg f)
 {
   x->i_color_sep = f * -1;
@@ -1628,7 +1705,6 @@ static void n_sa_color_sep(t_n_sa *x, t_floatarg f)
     }
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_color_recpos(t_n_sa *x, t_floatarg f)
 {
   x->i_color_recpos = f * -1;
@@ -1639,7 +1715,6 @@ static void n_sa_color_recpos(t_n_sa *x, t_floatarg f)
     }
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_color_ch(t_n_sa *x, t_floatarg ch, t_floatarg f)
 {
   int i = ch;
@@ -1652,27 +1727,23 @@ static void n_sa_color_ch(t_n_sa *x, t_floatarg ch, t_floatarg f)
     }
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_view(t_n_sa *x, t_floatarg f)
 {
   x->sc.i_view = (f > 0);
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_w(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SCOPE_WIDTH_MIN, SCOPE_WIDTH_MAX, f);
   x->sc.i_w = f;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_grid_view(t_n_sa *x, t_floatarg f)
 {
   x->sc.grid_view = (f > 0);
   x->sc.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_grid_ver(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SCOPE_GRID_VER_MIN, SCOPE_GRID_VER_MAX, f);
@@ -1681,7 +1752,6 @@ static void n_sa_scope_grid_ver(t_n_sa *x, t_floatarg f)
   x->sc.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_grid_hor(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SCOPE_GRID_HOR_MIN, SCOPE_GRID_HOR_MAX, f);
@@ -1690,14 +1760,12 @@ static void n_sa_scope_grid_hor(t_n_sa *x, t_floatarg f)
   x->sc.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_sep_view(t_n_sa *x, t_floatarg f)
 {
   x->sc.sep_view = (f > 0);
   x->sc.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_separate(t_n_sa *x, t_floatarg f)
 {
   x->sc.separate = (f > 0);
@@ -1705,14 +1773,12 @@ static void n_sa_scope_separate(t_n_sa *x, t_floatarg f)
   x->sc.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_recpos_view(t_n_sa *x, t_floatarg f)
 {
   x->sc.recpos_view = (f > 0);
   x->sc.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_sync(t_n_sa *x, t_floatarg f)
 {
   if      (f <= 0)    x->sc.sync = SCOPE_SYNC_OFF;
@@ -1720,26 +1786,22 @@ static void n_sa_scope_sync(t_n_sa *x, t_floatarg f)
   else                x->sc.sync = SCOPE_SYNC_DOWN;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_sync_channel(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(0, x->amount_channel - 1, f);
   x->sc.sync_channel = f;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_sync_treshold(t_n_sa *x, t_floatarg f)
 {
   x->sc.sync_treshold = f;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_sync_dc(t_n_sa *x, t_floatarg f)
 {
   x->sc.sync_dc = (f > 0);
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_sync_dc_freq(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(1.0, 1000.0, f);
@@ -1748,7 +1810,6 @@ static void n_sa_scope_sync_dc_freq(t_n_sa *x, t_floatarg f)
   x->sc.sync_dc_z = 0.0;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_spp(t_n_sa *x, t_floatarg f)
 {
   CLIP_MIN(1, f);
@@ -1756,13 +1817,11 @@ static void n_sa_scope_spp(t_n_sa *x, t_floatarg f)
   n_sa_calc_constant(x);
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_freeze(t_n_sa *x, t_floatarg f)
 {
   x->sc.freeze = (f == 0);
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_on(t_n_sa *x, t_floatarg ch, t_floatarg f)
 {
   int i = ch;
@@ -1772,7 +1831,6 @@ static void n_sa_scope_on(t_n_sa *x, t_floatarg ch, t_floatarg f)
   x->sc.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_scope_amp(t_n_sa *x, t_floatarg ch, t_floatarg f)
 {
   int i = ch;
@@ -1780,27 +1838,23 @@ static void n_sa_scope_amp(t_n_sa *x, t_floatarg ch, t_floatarg f)
   x->sc.ch[i].amp = f;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_view(t_n_sa *x, t_floatarg f)
 {
   x->sp.i_view = (f > 0);
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_w(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SPECTR_WIDTH_MIN, SPECTR_WIDTH_MAX, f);
   x->sp.i_w = f;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_grid_view(t_n_sa *x, t_floatarg f)
 {
   x->sp.grid_view = (f > 0);
   x->sp.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_grid_ver(t_n_sa *x, t_floatarg f)
 {
   if (f > 0) x->sp.grid_ver = LOG;
@@ -1810,7 +1864,6 @@ static void n_sa_spectr_grid_ver(t_n_sa *x, t_floatarg f)
   x->sp.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_grid_hor(t_n_sa *x, t_floatarg f)
 {
   if (f > 0) x->sp.grid_hor = LOG;
@@ -1820,7 +1873,6 @@ static void n_sa_spectr_grid_hor(t_n_sa *x, t_floatarg f)
   x->sp.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_lin_min(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SPECTR_LIN_MIN, SPECTR_LIN_MAX, f);
@@ -1830,7 +1882,6 @@ static void n_sa_spectr_lin_min(t_n_sa *x, t_floatarg f)
   x->sp.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_lin_max(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SPECTR_LIN_MIN, SPECTR_LIN_MAX, f);
@@ -1840,7 +1891,6 @@ static void n_sa_spectr_lin_max(t_n_sa *x, t_floatarg f)
   x->sp.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_log_min(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SPECTR_LOG_MIN, SPECTR_LOG_MAX, f);
@@ -1850,7 +1900,6 @@ static void n_sa_spectr_log_min(t_n_sa *x, t_floatarg f)
   x->sp.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_log_max(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(SPECTR_LOG_MIN, SPECTR_LOG_MAX, f);
@@ -1860,7 +1909,6 @@ static void n_sa_spectr_log_max(t_n_sa *x, t_floatarg f)
   x->sp.update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_env(t_n_sa *x, t_floatarg f)
 {
   CLIP_MINMAX(-10., 100., f);
@@ -1868,7 +1916,6 @@ static void n_sa_spectr_env(t_n_sa *x, t_floatarg f)
   n_sa_spectr_calc_env(x);
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_size(t_n_sa *x, t_floatarg f)
 {
   if (f == 64     ||
@@ -1898,20 +1945,17 @@ static void n_sa_spectr_size(t_n_sa *x, t_floatarg f)
     }
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_win(t_n_sa *x, t_symbol *s)
 {
   x->sp.win = s;
   n_sa_spectr_calc_win(x);
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_freeze(t_n_sa *x, t_floatarg f)
 {
   x->sp.freeze = (f == 0);
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_spectr_on(t_n_sa *x, t_floatarg ch, t_floatarg f)
 {
   int i = ch;
@@ -2146,7 +2190,6 @@ t_int *n_sa_perform(t_int *w)
   return (w + x->amount_channel + 2);
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_dsp(t_n_sa *x, t_signal **sp)
 {
   int i;
@@ -2172,13 +2215,13 @@ static void n_sa_dsp(t_n_sa *x, t_signal **sp)
 //----------------------------------------------------------------------------//
 // setup ///////////////////////////////////////////////////////////////////////
 //----------------------------------------------------------------------------//
-static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
+static void *n_sa_new(t_floatarg f)
 {
   int i;
   t_n_sa *x = (t_n_sa *)pd_new(n_sa_class);
 
   // arguments
-  x->amount_channel  = atom_getfloatarg(0,ac,av);
+  x->amount_channel  = f;
   CLIP_MINMAX(1, CHANNEL_MAX, x->amount_channel);
   
   // create inlets
@@ -2271,11 +2314,9 @@ static void *n_sa_new(t_symbol *s, int ac, t_atom *av)
   // init
   n_sa_calc_constant(x);
 
-  return (x);
-  if (s) {}; // for disable error messages ...
+  return (void*)x;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sa_free(t_n_sa *x)
 {
   freebytes(x->v_d, sizeof(t_int *) * (x->amount_channel + 1));
@@ -2287,15 +2328,14 @@ static void n_sa_free(t_n_sa *x)
   clock_free(x->cl);
 }
 
-//----------------------------------------------------------------------------//
-#define METHOD0(F,S) \
-class_addmethod(n_sa_class,(t_method)(F),gensym((S)), 0);
-#define METHOD1(F,S) \
-class_addmethod(n_sa_class,(t_method)(F),gensym((S)), A_FLOAT, 0);
-#define METHOD2(F,S) \
-class_addmethod(n_sa_class,(t_method)(F),gensym((S)), A_FLOAT, A_FLOAT, 0);
-#define METHODS(F,S) \
-class_addmethod(n_sa_class,(t_method)(F),gensym((S)), A_SYMBOL, 0);
+#define METHOD0(F,S)						\
+  class_addmethod(n_sa_class,(t_method)(F),gensym((S)), 0);
+#define METHOD1(F,S)							\
+  class_addmethod(n_sa_class,(t_method)(F),gensym((S)), A_FLOAT, 0);
+#define METHOD2(F,S)							\
+  class_addmethod(n_sa_class,(t_method)(F),gensym((S)), A_FLOAT, A_FLOAT, 0);
+#define METHODS(F,S)							\
+  class_addmethod(n_sa_class,(t_method)(F),gensym((S)), A_SYMBOL, 0);
 
 void n_sa_tilde_setup(void)
 {
@@ -2303,7 +2343,7 @@ void n_sa_tilde_setup(void)
 		       (t_newmethod)n_sa_new,
 		       (t_method)n_sa_free,
 		       sizeof(t_n_sa),
-		       0, A_GIMME, 0);
+		       0, A_DEFFLOAT, 0);
   METHOD0(nullfn,                     "signal");
   METHOD0(n_sa_dsp,                   "dsp");
   /* window */
