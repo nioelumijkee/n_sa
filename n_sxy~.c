@@ -1,15 +1,12 @@
 /* multiwave xy-scope. v0.2 */
 
-//----------------------------------------------------------------------------//
-/* #include <stdlib.h> */
-/* #include <stdio.h> */
+#include <stdlib.h>
+#include <stdio.h>
 #include <SDL2/SDL.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include "m_pd.h"
-#include "include/save.c"
 
-//----------------------------------------------------------------------------//
 #define CHANNEL_MAX 16
 #define BUFFER_MAX 65536
 #define WINDOW_HEIGHT_MIN 4
@@ -23,15 +20,12 @@
 #define GRID_HOR_MIN 0
 #define GRID_HOR_MAX 31
 
-//----------------------------------------------------------------------------//
 #define CLIP_MINMAX(MIN, MAX, IN)            \
   if      ((IN) < (MIN))  (IN) = (MIN);         \
   else if ((IN) > (MAX))  (IN) = (MAX);
 
-//----------------------------------------------------------------------------//
 static t_class *n_sxy_class;
 
-//----------------------------------------------------------------------------//
 typedef struct _n_sxy_color
 {
   GLfloat r;
@@ -40,7 +34,6 @@ typedef struct _n_sxy_color
   GLfloat a;
 } t_n_sxy_color;
 
-//----------------------------------------------------------------------------//
 typedef struct _n_sxy_channel
 {
   int on;
@@ -50,7 +43,6 @@ typedef struct _n_sxy_channel
   GLfloat w;
 } t_n_sxy_channel;
 
-//----------------------------------------------------------------------------//
 typedef struct _n_sxy
 {
   t_object x_obj;  /* pd */
@@ -58,7 +50,6 @@ typedef struct _n_sxy
   int      s_n;    /* blocksize */
   t_float  s_sr;   /* sample rate */
   t_int    **v_d;  /* vector for dsp_addv */
-
   /* window */
   int window_on;
   int window_w;
@@ -68,47 +59,36 @@ typedef struct _n_sxy
   int i_window_w;
   int i_window_h;
   int window_moved;
-
   int grid_view;
-
   int grid_hor;
   GLfloat grid_hor_y_c;
   GLfloat grid_hor_y_up[GRID_HOR_MAX];
   GLfloat grid_hor_y_dw[GRID_HOR_MAX];
-
   int grid_ver;
   GLfloat grid_ver_x[GRID_VER_MAX];
-
   int update;
-
   /* colors */
   t_n_sxy_color c_back;
   t_n_sxy_color c_grid;
   GLfloat       w_grid;
-
   /* channels */
   int channel;
   int amount_channel;
-
   /* scope */
   int bufmax;
   int bufmax_1;
   int count;
   t_n_sxy_channel ch[CHANNEL_MAX];
   int freeze;
-
   /* sdl */
   SDL_Window *win;
   SDL_GLContext glcontext;
   SDL_Event event;
-
   /* frame per second */
   t_float fps;
-
   /* clock */
   t_clock *cl;
   int cl_time;
-
   /* symbols */
   t_symbol *s_window;
   t_symbol *s_window_ox;
@@ -127,6 +107,80 @@ void n_sxy_output(t_n_sxy *x, t_symbol *s, int v)
   outlet_anything(x->x_out, s, 1, a);
 }
 
+int save_glcontent_to_file(int w, int h,
+			    const char *filename)
+{
+  int i,j;
+  int r,g,b;
+  int ofs, ofs_inv;
+  const int number_of_pixels = w * h * 3;
+  unsigned char pixels[number_of_pixels];
+  unsigned char pixels_inv[number_of_pixels];
+  FILE *output_file = NULL;
+  
+  // get gl pixels
+  glPixelStorei(GL_PACK_ALIGNMENT, 1);
+  glReadBuffer(GL_FRONT);
+  glReadPixels(0, 0, 
+	       w, h, 
+	       GL_RGB, 
+	       GL_UNSIGNED_BYTE, 
+	       pixels);
+
+  // reverse gl pixels
+  for (i=0; i<h; i++)
+    {
+      ofs = i * w * 3;
+      ofs_inv = (h - i - 1) * w * 3;
+      for (j=0; j<w; j++)
+	{
+	  // reverse RGB -> BGR
+	  r = j * 3;
+	  g = r + 1;
+	  b = r + 2;
+	  pixels_inv[ofs_inv+r] = pixels[ofs+b]; // r->b
+	  pixels_inv[ofs_inv+g] = pixels[ofs+g]; // g->g
+	  pixels_inv[ofs_inv+b] = pixels[ofs+r]; // b->r
+	}
+    }
+
+  // write to file TGA
+  output_file = fopen(filename, "w");
+  if (output_file != NULL)
+    {
+      unsigned char size_w0 = w >> 8;
+      unsigned char size_w1 = w - (size_w0 << 8);
+      unsigned char size_h0 = h >> 8;
+      unsigned char size_h1 = h - (size_h0 << 8);
+      unsigned char header[] = {
+	0, // id 
+	0, // color map
+	2, // TrueColor (no map color/ no compression)
+
+	0, // for color map
+	0, 
+	0, 
+	0, 
+	0,
+
+	0, 0,             // hor
+	size_h1, size_h0, // ver
+	size_w1, size_w0, // width
+	size_h1, size_h0, // height
+	24,               // color bit depth
+	32                // image descriptor(0100000)
+      };
+      fwrite(&header, sizeof(header), 1, output_file);
+      fwrite(pixels_inv, number_of_pixels, 1, output_file);
+      fclose(output_file);
+      return(0);
+    }
+  else
+    {
+      return(1);
+    }
+}
+
 //----------------------------------------------------------------------------//
 // calc ////////////////////////////////////////////////////////////////////////
 //----------------------------------------------------------------------------//
@@ -137,7 +191,6 @@ void n_sxy_calc_constant(t_n_sxy *x)
   x->count = 0;
 }
 
-//----------------------------------------------------------------------------//
 void n_sxy_calc_grid_hor(t_n_sxy *x)
 {
   int i;
@@ -159,7 +212,6 @@ void n_sxy_calc_grid_hor(t_n_sxy *x)
     }
 }
 
-//----------------------------------------------------------------------------//
 void n_sxy_calc_grid_ver(t_n_sxy *x)
 {
   int i;
@@ -272,7 +324,6 @@ void n_sxy_redraw(t_n_sxy *x)
   n_sxy_output(x, x->s_redraw, 1);
 }
 
-//----------------------------------------------------------------------------//
 void n_sxy_reshape(t_n_sxy *x)
 {
   if (x->window_on == 0) return;
@@ -317,7 +368,6 @@ void n_sxy_sdl_window(t_n_sxy *x)
   clock_delay(x->cl, x->cl_time);
 }
 
-//----------------------------------------------------------------------------//
 void n_sxy_sdl_window_close(t_n_sxy *x)
 {
   // clock
@@ -327,7 +377,6 @@ void n_sxy_sdl_window_close(t_n_sxy *x)
   SDL_Quit();
 }
 
-//----------------------------------------------------------------------------//
 void n_sxy_events(t_n_sxy *x)
 {
   // clock
@@ -405,35 +454,30 @@ static void n_sxy_window(t_n_sxy *x, t_floatarg f)
     }
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_window_ox(t_n_sxy *x, t_floatarg f)
 {
   x->window_ox = f;
   x->window_moved = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_window_oy(t_n_sxy *x, t_floatarg f)
 {
   x->window_oy = f;
   x->window_moved = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_window_w(t_n_sxy *x, t_floatarg f)
 {
   CLIP_MINMAX(WINDOW_WIDTH_MIN, WINDOW_WIDTH_MAX, f);
   x->i_window_w = f;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_window_h(t_n_sxy *x, t_floatarg f)
 {
   CLIP_MINMAX(WINDOW_HEIGHT_MIN, WINDOW_HEIGHT_MAX, f);
   x->i_window_h = f;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_window_fps(t_n_sxy *x, t_floatarg f)
 {
   CLIP_MINMAX(WINDOW_FPS_MIN, WINDOW_FPS_MAX, f);
@@ -442,7 +486,6 @@ static void n_sxy_window_fps(t_n_sxy *x, t_floatarg f)
   n_sxy_calc_constant(x);
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_par_back(t_n_sxy *x,
 			 t_floatarg color,
 			 t_floatarg a)
@@ -453,7 +496,6 @@ static void n_sxy_par_back(t_n_sxy *x,
   x->update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_par_grid(t_n_sxy *x,
 			 t_floatarg color)
 {
@@ -463,7 +505,6 @@ static void n_sxy_par_grid(t_n_sxy *x,
   x->update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_par_ch(t_n_sxy *x, 
 			 t_floatarg ch, 
 			 t_floatarg color,
@@ -479,7 +520,6 @@ static void n_sxy_par_ch(t_n_sxy *x,
   x->update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_on(t_n_sxy *x, t_floatarg ch, t_floatarg on)
 {
   int i = ch;
@@ -488,14 +528,12 @@ static void n_sxy_on(t_n_sxy *x, t_floatarg ch, t_floatarg on)
   x->update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_grid_view(t_n_sxy *x, t_floatarg f)
 {
   x->grid_view = (f > 0);
   x->update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_grid_ver(t_n_sxy *x, t_floatarg f)
 {
   CLIP_MINMAX(GRID_VER_MIN, GRID_VER_MAX, f);
@@ -504,7 +542,6 @@ static void n_sxy_grid_ver(t_n_sxy *x, t_floatarg f)
   x->update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_grid_hor(t_n_sxy *x, t_floatarg f)
 {
   CLIP_MINMAX(GRID_HOR_MIN, GRID_HOR_MAX, f);
@@ -513,7 +550,6 @@ static void n_sxy_grid_hor(t_n_sxy *x, t_floatarg f)
   x->update = 1;
 }
 
-//----------------------------------------------------------------------------//
 static void n_sxy_freeze(t_n_sxy *x, t_floatarg f)
 {
   x->freeze = (f == 0);
@@ -528,7 +564,7 @@ static void n_sxy_freeze(t_n_sxy *x, t_floatarg f)
 /*     2 - error open file.      */
 void n_sxy_save(t_n_sxy *x, t_symbol *s)
 {
-  // get gl pixels
+  // window
   if (x->window_on == 0)
     {
       post("error: n_sxy~: window not open");
@@ -538,8 +574,6 @@ void n_sxy_save(t_n_sxy *x, t_symbol *s)
 
   // save
   int err = save_glcontent_to_file(x->window_w, x->window_h, s->s_name);
-
-  // output
   if (err == 0)
     {
       post("n_sxy~: save to file: %s", s->s_name);
@@ -593,7 +627,6 @@ t_int *n_sxy_perform(t_int *w)
   return (w + x->amount_channel + 2);
 }
 
-//----------------------------------------------------------------------------//
 void n_sxy_dsp(t_n_sxy *x, t_signal **sp)
 {
   int i;
@@ -616,13 +649,13 @@ void n_sxy_dsp(t_n_sxy *x, t_signal **sp)
 //----------------------------------------------------------------------------//
 // setup ///////////////////////////////////////////////////////////////////////
 //----------------------------------------------------------------------------//
-void *n_sxy_new(t_symbol *s, int ac, t_atom *av)
+void *n_sxy_new(t_floatarg f)
 {
   int i;
   t_n_sxy *x = (t_n_sxy *)pd_new(n_sxy_class);
 
   // arguments
-  x->channel  = atom_getfloatarg(0,ac,av);
+  x->channel  = f;
   CLIP_MINMAX(1, CHANNEL_MAX, x->channel);
   x->amount_channel = x->channel * 2;
 
@@ -679,10 +712,8 @@ void *n_sxy_new(t_symbol *s, int ac, t_atom *av)
   n_sxy_calc_constant(x);
 
   return (x);
-  if (s) {}; // for disable error messages ...
 }
 
-//----------------------------------------------------------------------------//
 void n_sxy_free(t_n_sxy *x)
 {
   freebytes(x->v_d, sizeof(t_int *) * (x->amount_channel + 1));
@@ -694,7 +725,6 @@ void n_sxy_free(t_n_sxy *x)
   clock_free(x->cl);
 }
 
-//----------------------------------------------------------------------------//
 #define METHOD0(F,S) \
 class_addmethod(n_sxy_class,(t_method)(F),gensym((S)),0);
 #define METHOD1(F,S) \
@@ -715,7 +745,7 @@ void n_sxy_tilde_setup(void)
 			     (t_newmethod)n_sxy_new,
 			     (t_method)n_sxy_free, 
 			     sizeof(t_n_sxy),
-			     0, A_GIMME, 0);
+			     0, A_DEFFLOAT, 0);
 
   METHOD0(nullfn,                      "signal");
   METHOD0(n_sxy_dsp,                   "dsp");
