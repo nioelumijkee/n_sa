@@ -1,4 +1,4 @@
-n_sa~
-=====
+Signal analysis tool for Pd.
 
-Signal analysis tool.
+- n_sa~ - scope/spectr
+- n_sxy~ - multiwave xy-scope

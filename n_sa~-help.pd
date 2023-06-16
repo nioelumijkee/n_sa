@@ -1,16 +1,11 @@
-#N canvas 415 303 908 434 10;
-#X obj 470 11 cnv 15 204 400 empty empty scope 20 12 0 12 #bbbbbb #000000
-0;
-#X obj 677 11 cnv 15 204 400 empty empty spectr 20 12 0 12 #bbbbbb
-#000000 0;
-#X obj 263 11 cnv 15 204 400 empty empty window 20 12 0 12 #bbbbbb
-#000000 0;
-#X obj 20 10 cnv 15 240 70 empty empty n_sa~ 20 12 0 12 #bbbbbb #000000
-0;
+#N canvas 226 149 908 434 10;
+#X obj 470 11 cnv 15 204 400 empty empty scope 20 12 0 12 #bbbbbb #000000 0;
+#X obj 677 11 cnv 15 204 400 empty empty spectr 20 12 0 12 #bbbbbb #000000 0;
+#X obj 263 11 cnv 15 204 400 empty empty window 20 12 0 12 #bbbbbb #000000 0;
+#X obj 20 10 cnv 15 240 70 empty empty n_sa~ 20 12 0 12 #bbbbbb #000000 0;
 #N canvas 615 96 358 498 gen 0;
 #X obj 126 432 outlet~;
-#X obj 102 244 vradio 15 1 1 5 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 0;
+#X obj 102 244 vradio 15 1 1 5 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 0;
 #X text 118 242 sin;
 #X text 118 258 tri;
 #X text 118 273 saw;
@@ -32,18 +27,14 @@
 #X connect 6 0 7 0;
 #X connect 7 0 5 0;
 #X restore 15 323 pd sin;
-#X obj 102 131 nbx 4 14 -1e+37 1e+37 0 1 empty empty pitch 0 -8 0 10
-#fcfcfc #000000 #000000 52.2131 256;
+#X obj 102 131 nbx 4 14 -1e+37 1e+37 0 1 empty empty pitch 0 -8 0 10 #fcfcfc #000000 #000000 37.2131 256;
 #X obj 42 146 mtof;
-#X obj 102 162 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -8 0 10
-#fcfcfc #000000 #000000 166.855 256;
+#X obj 102 162 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -8 0 10 #fcfcfc #000000 #000000 70.1539 256;
 #X obj 183 179 ftom;
 #X msg 183 202 set \$1;
-#X obj 102 193 nbx 4 14 -100 100 0 1 empty empty pw 0 -8 0 10 #fcfcfc
-#000000 #000000 11 256;
+#X obj 102 193 nbx 4 14 -100 100 0 1 empty empty pw 0 -8 0 10 #fcfcfc #000000 #000000 11 256;
 #X obj 174 296 * 0.01;
-#X obj 102 226 nbx 4 14 -9999 9999 0 1 empty empty level 0 -8 0 10
-#fcfcfc #000000 #000000 100 256;
+#X obj 102 226 nbx 4 14 -9999 9999 0 1 empty empty level 0 -8 0 10 #fcfcfc #000000 #000000 100 256;
 #X obj 282 303 * 0.01;
 #X obj 126 410 *~;
 #X msg 282 326 \$1 25;
@@ -163,8 +154,7 @@
 #X obj 33 319 r \$0-to;
 #N canvas 615 96 358 498 gen 0;
 #X obj 126 432 outlet~;
-#X obj 102 244 vradio 15 1 1 5 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 0;
+#X obj 102 244 vradio 15 1 1 5 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 0;
 #X text 118 242 sin;
 #X text 118 258 tri;
 #X text 118 273 saw;
@@ -186,18 +176,14 @@
 #X connect 6 0 7 0;
 #X connect 7 0 5 0;
 #X restore 15 323 pd sin;
-#X obj 102 131 nbx 4 14 -1e+37 1e+37 0 1 empty empty pitch 0 -8 0 10
-#fcfcfc #000000 #000000 62.2131 256;
+#X obj 102 131 nbx 4 14 -1e+37 1e+37 0 1 empty empty pitch 0 -8 0 10 #fcfcfc #000000 #000000 26.2131 256;
 #X obj 42 146 mtof;
-#X obj 102 162 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -8 0 10
-#fcfcfc #000000 #000000 297.302 256;
+#X obj 102 162 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -8 0 10 #fcfcfc #000000 #000000 37.1627 256;
 #X obj 183 179 ftom;
 #X msg 183 202 set \$1;
-#X obj 102 193 nbx 4 14 -100 100 0 1 empty empty pw 0 -8 0 10 #fcfcfc
-#000000 #000000 11 256;
+#X obj 102 193 nbx 4 14 -100 100 0 1 empty empty pw 0 -8 0 10 #fcfcfc #000000 #000000 11 256;
 #X obj 174 296 * 0.01;
-#X obj 102 226 nbx 4 14 -9999 9999 0 1 empty empty level 0 -8 0 10
-#fcfcfc #000000 #000000 100 256;
+#X obj 102 226 nbx 4 14 -9999 9999 0 1 empty empty level 0 -8 0 10 #fcfcfc #000000 #000000 100 256;
 #X obj 282 303 * 0.01;
 #X obj 126 410 *~;
 #X msg 282 326 \$1 25;
@@ -316,8 +302,7 @@
 #X restore 81 84 pd gen;
 #N canvas 615 96 358 498 gen 0;
 #X obj 126 432 outlet~;
-#X obj 102 244 vradio 15 1 1 5 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 2;
+#X obj 102 244 vradio 15 1 1 5 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 2;
 #X text 118 242 sin;
 #X text 118 258 tri;
 #X text 118 273 saw;
@@ -339,18 +324,14 @@
 #X connect 6 0 7 0;
 #X connect 7 0 5 0;
 #X restore 15 323 pd sin;
-#X obj 102 131 nbx 4 14 -1e+37 1e+37 0 1 empty empty pitch 0 -8 0 10
-#fcfcfc #000000 #000000 72.7521 256;
+#X obj 102 131 nbx 4 14 -1e+37 1e+37 0 1 empty empty pitch 0 -8 0 10 #fcfcfc #000000 #000000 70.7521 256;
 #X obj 42 146 mtof;
-#X obj 102 162 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -8 0 10
-#fcfcfc #000000 #000000 546.484 256;
+#X obj 102 162 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -8 0 10 #fcfcfc #000000 #000000 486.862 256;
 #X obj 183 179 ftom;
 #X msg 183 202 set \$1;
-#X obj 102 193 nbx 4 14 -100 100 0 1 empty empty pw 0 -8 0 10 #fcfcfc
-#000000 #000000 71 256;
+#X obj 102 193 nbx 4 14 -100 100 0 1 empty empty pw 0 -8 0 10 #fcfcfc #000000 #000000 71 256;
 #X obj 174 296 * 0.01;
-#X obj 102 226 nbx 4 14 -9999 9999 0 1 empty empty level 0 -8 0 10
-#fcfcfc #000000 #000000 100 256;
+#X obj 102 226 nbx 4 14 -9999 9999 0 1 empty empty level 0 -8 0 10 #fcfcfc #000000 #000000 100 256;
 #X obj 282 303 * 0.01;
 #X obj 126 410 *~;
 #X msg 282 326 \$1 25;
@@ -469,8 +450,7 @@
 #X restore 135 84 pd gen;
 #N canvas 615 96 358 498 gen 0;
 #X obj 126 432 outlet~;
-#X obj 102 244 vradio 15 1 1 5 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 0;
+#X obj 102 244 vradio 15 1 1 5 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 0;
 #X text 118 242 sin;
 #X text 118 258 tri;
 #X text 118 273 saw;
@@ -492,18 +472,14 @@
 #X connect 6 0 7 0;
 #X connect 7 0 5 0;
 #X restore 15 323 pd sin;
-#X obj 102 131 nbx 4 14 -1e+37 1e+37 0 1 empty empty pitch 0 -8 0 10
-#fcfcfc #000000 #000000 53.2131 256;
+#X obj 102 131 nbx 4 14 -1e+37 1e+37 0 1 empty empty pitch 0 -8 0 10 #fcfcfc #000000 #000000 66.2131 256;
 #X obj 42 146 mtof;
-#X obj 102 162 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -8 0 10
-#fcfcfc #000000 #000000 176.777 256;
+#X obj 102 162 nbx 4 14 -1e+37 1e+37 0 1 empty empty freq 0 -8 0 10 #fcfcfc #000000 #000000 374.577 256;
 #X obj 183 179 ftom;
 #X msg 183 202 set \$1;
-#X obj 102 193 nbx 4 14 -100 100 0 1 empty empty pw 0 -8 0 10 #fcfcfc
-#000000 #000000 9 256;
+#X obj 102 193 nbx 4 14 -100 100 0 1 empty empty pw 0 -8 0 10 #fcfcfc #000000 #000000 9 256;
 #X obj 174 296 * 0.01;
-#X obj 102 226 nbx 4 14 -9999 9999 0 1 empty empty level 0 -8 0 10
-#fcfcfc #000000 #000000 100 256;
+#X obj 102 226 nbx 4 14 -9999 9999 0 1 empty empty level 0 -8 0 10 #fcfcfc #000000 #000000 100 256;
 #X obj 282 303 * 0.01;
 #X obj 126 410 *~;
 #X msg 282 326 \$1 25;
@@ -624,8 +600,7 @@
 #X obj 28 344 n_sa~ 4, f 27;
 #X text 65 40 Signal Analysis tool.;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 0 empty empty window 24 8 0 10 #fcfcfc #000000
-#000000 0 1;
+#X obj 100 100 tgl 15 0 empty empty window 24 8 0 10 #fcfcfc #000000 #000000 0 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 window \$1;
 #X obj 100 28 r \$0-from;
@@ -641,8 +616,7 @@
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 141 s \$0-to;
 #X msg 100 119 window_h \$1;
-#X obj 100 100 nbx 4 15 100 9999 0 1 empty empty window_height 48 8
-0 10 #fcfcfc #000000 #000000 100 256;
+#X obj 100 100 nbx 4 15 100 9999 0 1 empty empty window_height 48 8 0 10 #fcfcfc #000000 #000000 200 256;
 #X obj 100 28 r \$0-from;
 #X msg 100 74 set \$1;
 #X obj 100 52 route window_h;
@@ -655,8 +629,7 @@
 #X restore 265 78 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 149 s \$0-to;
-#X obj 100 100 nbx 4 15 1 9999 0 1 empty empty scope_width 48 8 0 10
-#fcfcfc #000000 #000000 256 256;
+#X obj 100 100 nbx 4 15 1 9999 0 1 empty empty scope_width 48 8 0 10 #fcfcfc #000000 #000000 256 256;
 #X msg 100 124 scope_w \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
@@ -664,8 +637,7 @@
 #X restore 472 48 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 148 s \$0-to;
-#X obj 100 100 nbx 4 15 1 9999 0 1 empty empty spectr_width 48 8 0
-10 #fcfcfc #000000 #000000 512 256;
+#X obj 100 100 nbx 4 15 1 9999 0 1 empty empty spectr_width 48 8 0 10 #fcfcfc #000000 #000000 512 256;
 #X msg 100 122 spectr_w \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
@@ -673,8 +645,7 @@
 #X restore 679 51 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 141 s \$0-to;
-#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty window_ox 48 8 0
-10 #fcfcfc #000000 #000000 154 256;
+#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty window_ox 48 8 0 10 #fcfcfc #000000 #000000 0 256;
 #X msg 100 119 window_ox \$1;
 #X obj 100 28 r \$0-from;
 #X obj 100 51 route window_ox;
@@ -688,8 +659,7 @@
 #X restore 265 48 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 141 s \$0-to;
-#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty window_oy 48 8 0
-10 #fcfcfc #000000 #000000 33 256;
+#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty window_oy 48 8 0 10 #fcfcfc #000000 #000000 15 256;
 #X msg 100 119 window_oy \$1;
 #X obj 100 28 r \$0-from;
 #X msg 100 74 set \$1;
@@ -703,8 +673,7 @@
 #X restore 265 63 pd;
 #X obj 28 383 s \$0-from;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_view 24 8 0 10 #fcfcfc #000000
-#000000 0 1;
+#X obj 100 100 tgl 15 1 empty empty scope_view 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_view \$1;
 #X connect 0 0 2 0;
@@ -712,8 +681,7 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 33 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty spectr_view 24 8 0 10 #fcfcfc #000000
-#000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty spectr_view 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 spectr_view \$1;
 #X connect 0 0 2 0;
@@ -721,14 +689,10 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 679 36 pd;
 #N canvas 526 215 411 401 color 0;
-#X obj 208 100 tgl 15 0 empty empty split 17 8 0 10 #010100 #010100
-#000000 0 1;
-#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1 256;
-#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1 256;
-#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1 256;
+#X obj 208 100 tgl 15 0 empty empty split 17 8 0 10 #010100 #010100 #000000 0 1;
+#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 1 256;
+#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 1 256;
+#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 1 256;
 #X obj 172 140 t b f;
 #X obj 172 160 +, f 5;
 #X obj 100 199 +;
@@ -757,14 +721,10 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 265 123 pd color;
 #N canvas 526 215 411 401 color 0;
-#X obj 208 100 tgl 15 0 empty empty back 17 8 0 10 #212120 #212120
-#000000 0 1;
-#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 33 256;
-#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 33 256;
-#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 33 256;
+#X obj 208 100 tgl 15 0 empty empty back 17 8 0 10 #212120 #212120 #000000 0 1;
+#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 33 256;
+#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 33 256;
+#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 33 256;
 #X obj 172 140 t b f;
 #X obj 172 160 +, f 5;
 #X obj 100 199 +;
@@ -793,14 +753,10 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 265 138 pd color;
 #N canvas 526 215 411 401 color 0;
-#X obj 208 100 tgl 15 0 empty empty grid 17 8 0 10 #323231 #323231
-#000000 0 1;
-#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 50 256;
-#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 50 256;
-#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 50 256;
+#X obj 208 100 tgl 15 0 empty empty grid 17 8 0 10 #323231 #323231 #000000 0 1;
+#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 50 256;
+#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 50 256;
+#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 50 256;
 #X obj 172 140 t b f;
 #X obj 172 160 +, f 5;
 #X obj 100 199 +;
@@ -829,14 +785,10 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 265 153 pd color;
 #N canvas 526 215 411 401 color 0;
-#X obj 208 100 tgl 15 0 empty empty sep 17 8 0 10 #6f6f6e #6f6f6e #000000
-0 1;
-#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 111 256;
-#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 111 256;
-#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 111 256;
+#X obj 208 100 tgl 15 0 empty empty sep 17 8 0 10 #6f6f6e #6f6f6e #000000 0 1;
+#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 111 256;
+#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 111 256;
+#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 111 256;
 #X obj 172 140 t b f;
 #X obj 172 160 +, f 5;
 #X obj 100 199 +;
@@ -865,8 +817,7 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 265 168 pd color;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_grid_view 24 8 0 10 #fcfcfc
-#000000 #000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty scope_grid_view 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_grid_view \$1;
 #X connect 0 0 2 0;
@@ -874,8 +825,7 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 63 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_sep_view 24 8 0 10 #fcfcfc
-#000000 #000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty scope_sep_view 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_sep_view \$1;
 #X connect 0 0 2 0;
@@ -883,8 +833,7 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 108 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_separate 24 8 0 10 #fcfcfc
-#000000 #000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty scope_separate 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_separate \$1;
 #X connect 0 0 2 0;
@@ -893,8 +842,7 @@
 #X restore 472 123 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 135 s \$0-to;
-#X obj 100 100 hradio 15 1 1 4 empty empty scope_sync_channel 64 8
-0 10 #fcfcfc #000000 #000000 0;
+#X obj 100 100 hradio 15 1 1 4 empty empty scope_sync_channel 64 8 0 10 #fcfcfc #000000 #000000 0;
 #X msg 100 117 scope_sync_channel \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
@@ -902,8 +850,7 @@
 #X restore 472 168 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 188 s \$0-to;
-#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty scope_sync_treshold
-48 8 0 10 #fcfcfc #000000 #000000 1 256;
+#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty scope_sync_treshold 48 8 0 10 #fcfcfc #000000 #000000 1 256;
 #X msg 100 162 scope_sync_treshold \$1;
 #X obj 100 120 * 0.01;
 #X connect 1 0 3 0;
@@ -913,16 +860,14 @@
 #X restore 472 183 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 157 s \$0-to;
-#X obj 100 100 nbx 4 15 1 9999 0 1 empty empty scope_spp 48 8 0 10
-#fcfcfc #000000 #000000 10 256;
+#X obj 100 100 nbx 4 15 1 9999 0 1 empty empty scope_spp 48 8 0 10 #fcfcfc #000000 #000000 10 256;
 #X msg 100 131 scope_spp \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 228 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_sync_dc 24 8 0 10 #fcfcfc
-#000000 #000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty scope_sync_dc 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_sync_dc \$1;
 #X connect 0 0 2 0;
@@ -931,8 +876,7 @@
 #X restore 472 198 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 157 s \$0-to;
-#X obj 100 100 nbx 4 15 1 9999 0 1 empty empty scope_sync_dc_freq 48
-8 0 10 #fcfcfc #000000 #000000 1 256;
+#X obj 100 100 nbx 4 15 1 9999 0 1 empty empty scope_sync_dc_freq 48 8 0 10 #fcfcfc #000000 #000000 1 256;
 #X msg 100 130 scope_sync_dc_freq \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
@@ -940,8 +884,7 @@
 #X restore 472 213 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 157 s \$0-to;
-#X obj 100 100 nbx 4 15 0 31 0 1 empty empty scope_grid_ver 48 8 0
-10 #fcfcfc #000000 #000000 12 256;
+#X obj 100 100 nbx 4 15 0 31 0 1 empty empty scope_grid_ver 48 8 0 10 #fcfcfc #000000 #000000 12 256;
 #X msg 100 131 scope_grid_ver \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
@@ -949,16 +892,14 @@
 #X restore 472 78 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 157 s \$0-to;
-#X obj 100 100 nbx 4 15 0 31 0 1 empty empty scope_grid_hor 48 8 0
-10 #fcfcfc #000000 #000000 9 256;
+#X obj 100 100 nbx 4 15 0 31 0 1 empty empty scope_grid_hor 48 8 0 10 #fcfcfc #000000 #000000 9 256;
 #X msg 100 130 scope_grid_hor \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 93 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_on_ch0 24 8 0 10 #fcfcfc
-#000000 #000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty scope_on_ch0 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_on 0 \$1;
 #X connect 0 0 2 0;
@@ -966,8 +907,7 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 285 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_on_ch1 24 8 0 10 #fcfcfc
-#000000 #000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty scope_on_ch1 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_on 1 \$1;
 #X connect 0 0 2 0;
@@ -975,8 +915,7 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 300 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_on_ch2 24 8 0 10 #fcfcfc
-#000000 #000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty scope_on_ch2 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_on 2 \$1;
 #X connect 0 0 2 0;
@@ -984,8 +923,7 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 315 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_on_ch3 24 8 0 10 #fcfcfc
-#000000 #000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty scope_on_ch3 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_on 3 \$1;
 #X connect 0 0 2 0;
@@ -994,8 +932,7 @@
 #X restore 472 330 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 185 s \$0-to;
-#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty scope_amp_ch0 48
-8 0 10 #fcfcfc #000000 #000000 100 256;
+#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty scope_amp_ch0 48 8 0 10 #fcfcfc #000000 #000000 100 256;
 #X msg 100 157 scope_amp 0 \$1;
 #X obj 100 120 * 0.01;
 #X connect 1 0 3 0;
@@ -1005,8 +942,7 @@
 #X restore 472 345 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 185 s \$0-to;
-#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty scope_amp_ch1 48
-8 0 10 #fcfcfc #000000 #000000 100 256;
+#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty scope_amp_ch1 48 8 0 10 #fcfcfc #000000 #000000 100 256;
 #X obj 100 120 * 0.01;
 #X msg 100 157 scope_amp 1 \$1;
 #X connect 1 0 2 0;
@@ -1016,8 +952,7 @@
 #X restore 472 360 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 185 s \$0-to;
-#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty scope_amp_ch2 48
-8 0 10 #fcfcfc #000000 #000000 100 256;
+#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty scope_amp_ch2 48 8 0 10 #fcfcfc #000000 #000000 100 256;
 #X obj 100 120 * 0.01;
 #X msg 100 157 scope_amp 2 \$1;
 #X connect 1 0 2 0;
@@ -1027,8 +962,7 @@
 #X restore 472 375 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 185 s \$0-to;
-#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty scope_amp_ch3 48
-8 0 10 #fcfcfc #000000 #000000 100 256;
+#X obj 100 100 nbx 4 15 -9999 9999 0 1 empty empty scope_amp_ch3 48 8 0 10 #fcfcfc #000000 #000000 100 256;
 #X obj 100 120 * 0.01;
 #X msg 100 157 scope_amp 3 \$1;
 #X connect 1 0 2 0;
@@ -1037,14 +971,10 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 390 pd;
 #N canvas 526 215 411 401 color 0;
-#X obj 208 100 tgl 15 0 empty empty ch0 17 8 0 10 #017cc4 #017cc4 #000000
-0 1;
-#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1 256;
-#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 124 256;
-#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 197 256;
+#X obj 208 100 tgl 15 0 empty empty ch0 17 8 0 10 #017cc4 #017cc4 #000000 0 1;
+#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 1 256;
+#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 124 256;
+#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 197 256;
 #X obj 172 140 t b f;
 #X obj 172 160 +, f 5;
 #X obj 100 199 +;
@@ -1073,14 +1003,10 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 265 198 pd color;
 #N canvas 526 215 411 401 color 0;
-#X obj 208 100 tgl 15 0 empty empty ch1 17 8 0 10 #01d000 #01d000 #000000
-0 1;
-#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1 256;
-#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 208 256;
-#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1 256;
+#X obj 208 100 tgl 15 0 empty empty ch1 17 8 0 10 #01d000 #01d000 #000000 0 1;
+#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 1 256;
+#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 208 256;
+#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 1 256;
 #X obj 172 140 t b f;
 #X obj 172 160 +, f 5;
 #X obj 100 199 +;
@@ -1109,14 +1035,10 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 265 213 pd color;
 #N canvas 526 215 411 401 color 0;
-#X obj 208 100 tgl 15 0 empty empty ch2 17 8 0 10 #c8010b #c8010b #000000
-0 1;
-#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 200 256;
-#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1 256;
-#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 12 256;
+#X obj 208 100 tgl 15 0 empty empty ch2 17 8 0 10 #c8010b #c8010b #000000 0 1;
+#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 200 256;
+#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 1 256;
+#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 12 256;
 #X obj 172 140 t b f;
 #X obj 172 160 +, f 5;
 #X obj 100 199 +;
@@ -1145,14 +1067,10 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 265 228 pd color;
 #N canvas 526 215 411 401 color 0;
-#X obj 208 100 tgl 15 0 empty empty ch3 17 8 0 10 #dc8900 #dc8900 #000000
-0 1;
-#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 220 256;
-#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 137 256;
-#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1 256;
+#X obj 208 100 tgl 15 0 empty empty ch3 17 8 0 10 #dc8900 #dc8900 #000000 0 1;
+#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 220 256;
+#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 137 256;
+#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 1 256;
 #X obj 172 140 t b f;
 #X obj 172 160 +, f 5;
 #X obj 100 199 +;
@@ -1182,22 +1100,17 @@
 #X restore 265 243 pd color;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 135 s \$0-to;
-#X obj 100 100 hradio 15 1 1 3 empty empty scope_sync(off/up/down)
-50 8 0 9 #fcfcfc #000000 #000000 2;
+#X obj 100 100 hradio 15 1 1 3 empty empty scope_sync(off/up/down) 50 8 0 9 #fcfcfc #000000 #000000 1;
 #X msg 100 116 scope_sync \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 153 pd;
 #N canvas 526 215 411 401 color 0;
-#X obj 208 100 tgl 15 0 empty empty recpos 17 8 0 10 #019a00 #019a00
-#000000 0 1;
-#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1 256;
-#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 154 256;
-#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc
-#000000 #000000 1 256;
+#X obj 208 100 tgl 15 0 empty empty recpos 17 8 0 10 #019a00 #019a00 #000000 0 1;
+#X obj 100 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 1 256;
+#X obj 136 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 154 256;
+#X obj 172 100 nbx 3 15 1 255 0 1 empty empty empty 0 -8 0 10 #fcfcfc #000000 #000000 1 256;
 #X obj 172 140 t b f;
 #X obj 172 160 +, f 5;
 #X obj 100 199 +;
@@ -1226,8 +1139,7 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 265 183 pd color;
 #N canvas 65 30 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_recpos_view 24 8 0 10 #fcfcfc
-#000000 #000000 0 1;
+#X obj 100 100 tgl 15 1 empty empty scope_recpos_view 24 8 0 10 #fcfcfc #000000 #000000 0 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_recpos_view \$1;
 #X connect 0 0 2 0;
@@ -1235,26 +1147,23 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 472 138 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty scope_freeze 24 8 0 10 #fcfcfc
-#000000 #000000 0 1;
+#X obj 100 100 tgl 15 1 empty empty scope_freeze 24 8 0 10 #fcfcfc #000000 #000000 0 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 scope_freeze \$1;
 #X connect 0 0 2 0;
 #X connect 2 0 1 0;
 #X coords 0 -1 1 1 200 15 2 100 100;
-#X restore 472 243 pd;
+#X restore 472 260 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 141 s \$0-to;
-#X obj 100 100 nbx 4 15 1 256 0 1 empty empty window_fps 48 8 0 10
-#fcfcfc #000000 #000000 50 256;
+#X obj 100 100 nbx 4 15 1 256 0 1 empty empty window_fps 48 8 0 10 #fcfcfc #000000 #000000 50 256;
 #X msg 100 119 window_fps \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 265 93 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty spectr_grid_view 24 8 0 10 #fcfcfc
-#000000 #000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty spectr_grid_view 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 spectr_grid_view \$1;
 #X connect 0 0 2 0;
@@ -1262,8 +1171,7 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 679 71 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty spectr_grid_ver(lin/log) 24 8 0
-10 #fcfcfc #000000 #000000 0 1;
+#X obj 100 100 tgl 15 1 empty empty spectr_grid_ver(lin/log) 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 spectr_grid_ver \$1;
 #X connect 0 0 2 0;
@@ -1271,8 +1179,7 @@
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 679 86 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty spectr_grid_hor(lin/log) 24 8 0
-10 #fcfcfc #000000 #000000 0 1;
+#X obj 100 100 tgl 15 1 empty empty spectr_grid_hor(lin/log) 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 spectr_grid_hor \$1;
 #X connect 0 0 2 0;
@@ -1281,8 +1188,7 @@
 #X restore 679 101 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 157 s \$0-to;
-#X obj 100 100 nbx 4 15 -100 100 0 1 empty empty spectr_lin_min 48
-8 0 10 #fcfcfc #000000 #000000 -3.50177e-09 256;
+#X obj 100 100 nbx 4 15 -100 100 0 1 empty empty spectr_lin_min 48 8 0 10 #fcfcfc #000000 #000000 -3.50177e-09 256;
 #X msg 100 130 spectr_lin_min \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
@@ -1290,8 +1196,7 @@
 #X restore 679 121 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 157 s \$0-to;
-#X obj 100 100 nbx 4 15 -100 100 0 1 empty empty spectr_lin_max 48
-8 0 10 #fcfcfc #000000 #000000 1.63 256;
+#X obj 100 100 nbx 4 15 -100 100 0 1 empty empty spectr_lin_max 48 8 0 10 #fcfcfc #000000 #000000 1.63 256;
 #X msg 100 130 spectr_lin_max \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
@@ -1299,8 +1204,7 @@
 #X restore 679 136 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 157 s \$0-to;
-#X obj 100 100 nbx 4 15 -100 100 0 1 empty empty spectr_log_min 48
-8 0 10 #fcfcfc #000000 #000000 -60 256;
+#X obj 100 100 nbx 4 15 -100 100 0 1 empty empty spectr_log_min 48 8 0 10 #fcfcfc #000000 #000000 -60 256;
 #X msg 100 130 spectr_log_min \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
@@ -1308,8 +1212,7 @@
 #X restore 679 151 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
 #X obj 100 157 s \$0-to;
-#X obj 100 100 nbx 4 15 -100 100 0 1 empty empty spectr_log_max 48
-8 0 10 #fcfcfc #000000 #000000 0 256;
+#X obj 100 100 nbx 4 15 -100 100 0 1 empty empty spectr_log_max 48 8 0 10 #fcfcfc #000000 #000000 0 256;
 #X msg 100 130 spectr_log_max \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
@@ -1317,29 +1220,24 @@
 #X restore 679 166 pd;
 #N canvas 818 235 450 300 (subpatch) 0;
 #X obj 100 157 s \$0-to;
-#X obj 100 100 nbx 4 15 -10 50 0 1 empty empty spectr_env 48 8 0 10
-#fcfcfc #000000 #000000 -4 256;
+#X obj 100 100 nbx 4 15 -10 50 0 1 empty empty spectr_env 48 8 0 10 #fcfcfc #000000 #000000 -4 256;
 #X msg 100 130 spectr_env \$1;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 679 196 pd;
-#N canvas 899 66 411 563 (subpatch) 0;
+#N canvas 45 123 411 563 (subpatch) 0;
 #X obj 68 431 s \$0-to;
-#X obj 100 100 tgl 15 0 \$0-s \$0-r - 4 8 0 10 #fcfcfc #ffffff #000000
-0 1;
+#X obj 100 100 tgl 15 0 \$0-s \$0-r - 4 8 0 10 #fcfcfc #ffffff #000000 0 1;
 #X obj 100 120 bang;
 #X msg 68 410 spectr_size \$1;
-#X obj 116 101 cnv 13 168 13 empty \$0-spectr-size spectr_size:4096
-4 7 0 10 #ffffff #000000 0;
+#X obj 116 101 cnv 13 168 13 empty \$0-spectr-size spectr_size:4096 4 7 0 10 #ffffff #000000 0;
 #X obj 166 431 s \$0-spectr-size;
 #X obj 111 382 t f f;
-#X obj 285 100 tgl 15 0 \$0-s \$0-r + 5 8 0 10 #fcfcfc #ffffff #000000
-0 1;
+#X obj 285 100 tgl 15 0 \$0-s \$0-r + 5 8 0 10 #fcfcfc #ffffff #000000 0 1;
 #X obj 285 120 bang;
 #X obj 100 143 i;
-#X obj 287 199 nbx 5 14 0 8 0 1 empty empty spectr_size 0 -8 0 10 #bbbbbb
-#000000 #000000 6 256;
+#X obj 285 222 nbx 5 14 0 8 0 1 empty empty spectr_size 0 -8 0 10 #bbbbbb #000000 #000000 6 256;
 #X obj 100 166 - 1;
 #X obj 285 143 i;
 #X obj 285 166 + 1;
@@ -1348,6 +1246,7 @@
 #X obj 147 230 t b f f;
 #X obj 103 354 list split 1;
 #X msg 25 263 64 128 256 512 1024 2048 4096 8192 16384;
+#X obj 285 188 clip 0 8;
 #X connect 1 0 2 0;
 #X connect 2 0 9 0;
 #X connect 3 0 0 0;
@@ -1357,9 +1256,9 @@
 #X connect 8 0 12 0;
 #X connect 9 0 11 0;
 #X connect 10 0 16 0;
-#X connect 11 0 10 0;
+#X connect 11 0 19 0;
 #X connect 12 0 13 0;
-#X connect 13 0 10 0;
+#X connect 13 0 19 0;
 #X connect 14 0 5 0;
 #X connect 15 1 17 0;
 #X connect 16 0 18 0;
@@ -1368,21 +1267,18 @@
 #X connect 16 2 12 1;
 #X connect 17 0 6 0;
 #X connect 18 0 15 0;
+#X connect 19 0 10 0;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 677 219 pd;
-#N canvas 864 67 411 563 (subpatch) 0;
+#N canvas 474 85 411 563 (subpatch) 0;
 #X obj 68 431 s \$0-to;
-#X obj 100 100 tgl 15 0 \$0-s \$0-r - 4 8 0 10 #fcfcfc #ffffff #000000
-0 1;
+#X obj 100 100 tgl 15 0 \$0-s \$0-r - 4 8 0 10 #fcfcfc #ffffff #000000 0 1;
 #X obj 100 120 bang;
-#X obj 116 101 cnv 13 168 13 empty \$0-spectr-win spectr_win:none 4
-7 0 10 #ffffff #000000 0;
-#X obj 285 100 tgl 15 0 \$0-s \$0-r + 5 8 0 10 #fcfcfc #ffffff #000000
-0 1;
+#X obj 116 101 cnv 13 168 13 empty \$0-spectr-win spectr_win:hamming 4 7 0 10 #ffffff #000000 0;
+#X obj 285 100 tgl 15 0 \$0-s \$0-r + 5 8 0 10 #fcfcfc #ffffff #000000 0 1;
 #X obj 285 120 bang;
 #X obj 100 143 i;
-#X obj 287 199 nbx 5 14 0 9 0 1 empty empty spectr_win 0 -8 0 10 #bbbbbb
-#000000 #000000 0 256;
+#X obj 284 223 nbx 5 14 0 9 0 1 empty empty spectr_win 0 -8 0 10 #bbbbbb #000000 #000000 6 256;
 #X obj 100 166 - 1;
 #X obj 285 143 i;
 #X obj 285 166 + 1;
@@ -1393,17 +1289,17 @@
 #X msg 68 409 spectr_win \$1;
 #X obj 166 431 s \$0-spectr-win;
 #X obj 111 382 t s s;
-#X msg 25 263 none bartlett blackman connes gaussian hanning hamming
-lanczos sin welch;
+#X msg 25 263 none bartlett blackman connes gaussian hanning hamming lanczos sin welch, f 23;
+#X obj 285 188 clip 0 9;
 #X connect 1 0 2 0;
 #X connect 2 0 6 0;
 #X connect 4 0 5 0;
 #X connect 5 0 9 0;
 #X connect 6 0 8 0;
 #X connect 7 0 12 0;
-#X connect 8 0 7 0;
+#X connect 8 0 19 0;
 #X connect 9 0 10 0;
-#X connect 10 0 7 0;
+#X connect 10 0 19 0;
 #X connect 11 1 13 0;
 #X connect 12 0 18 0;
 #X connect 12 1 11 1;
@@ -1415,11 +1311,11 @@ lanczos sin welch;
 #X connect 17 0 15 0;
 #X connect 17 1 14 0;
 #X connect 18 0 11 0;
+#X connect 19 0 7 0;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 677 234 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty spectr_on_ch0 24 8 0 10 #fcfcfc
-#000000 #000000 0 1;
+#X obj 100 100 tgl 15 1 empty empty spectr_on_ch0 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 spectr_on 0 \$1;
 #X connect 0 0 2 0;
@@ -1427,8 +1323,7 @@ lanczos sin welch;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 677 293 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty spectr_on_ch1 24 8 0 10 #fcfcfc
-#000000 #000000 0 1;
+#X obj 100 100 tgl 15 1 empty empty spectr_on_ch1 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 spectr_on 1 \$1;
 #X connect 0 0 2 0;
@@ -1436,8 +1331,7 @@ lanczos sin welch;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 677 308 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty spectr_on_ch2 24 8 0 10 #fcfcfc
-#000000 #000000 1 1;
+#X obj 100 100 tgl 15 1 empty empty spectr_on_ch2 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 spectr_on 2 \$1;
 #X connect 0 0 2 0;
@@ -1445,8 +1339,7 @@ lanczos sin welch;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 677 323 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty spectr_on_ch3 24 8 0 10 #fcfcfc
-#000000 #000000 0 1;
+#X obj 100 100 tgl 15 1 empty empty spectr_on_ch3 24 8 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 spectr_on 3 \$1;
 #X connect 0 0 2 0;
@@ -1454,20 +1347,18 @@ lanczos sin welch;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 677 338 pd;
 #N canvas 0 16 450 300 (subpatch) 0;
-#X obj 100 100 tgl 15 1 empty empty spectr_freeze 24 8 0 10 #fcfcfc
-#000000 #000000 0 1;
+#X obj 100 100 tgl 15 1 empty empty spectr_freeze 24 8 0 10 #fcfcfc #000000 #000000 0 1;
 #X obj 100 135 s \$0-to;
 #X msg 100 117 spectr_freeze \$1;
 #X connect 0 0 2 0;
 #X connect 2 0 1 0;
 #X coords 0 -1 1 1 200 15 2 100 100;
 #X restore 677 260 pd;
-#N canvas 630 273 500 408 example: 0;
+#N canvas 766 264 500 408 example: 0;
 #X msg 66 325 window \$1;
 #X obj 175 366 route window;
 #X msg 66 384 set \$1;
-#X obj 66 351 tgl 24 0 empty empty window 28 12 0 10 #fcfcfc #000000
-#000000 0 1;
+#X obj 10 301 tgl 24 0 empty empty window 28 12 0 10 #fcfcfc #000000 #000000 0 1;
 #X obj 176 31 loadbang;
 #X obj 176 77 osc~;
 #X obj 212 92 osc~;
@@ -1484,17 +1375,12 @@ lanczos sin welch;
 #X obj 403 161 * 2;
 #X obj 442 200 osc~;
 #X obj 442 179 * 2;
-#X obj 61 228 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000
-#000000 0 1;
+#X obj 61 228 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 0 1;
 #X msg 61 248 scope_separate \$1;
-#X obj 42 248 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000
-#000000 0 1;
+#X obj 42 248 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 0 1;
 #X msg 42 268 scope_sync \$1;
 #X obj 175 343 n_sa~ 8, f 45;
 #X msg 176 52 62.5;
-#X msg 95 214 window \$1;
-#X obj 95 187 tgl 24 0 empty empty window 28 12 0 10 #fcfcfc #000000
-#000000 0 1;
 #X connect 0 0 24 0;
 #X connect 1 0 2 0;
 #X connect 2 0 3 0;
@@ -1528,8 +1414,6 @@ lanczos sin welch;
 #X connect 24 0 1 0;
 #X connect 25 0 5 0;
 #X connect 25 0 7 0;
-#X connect 26 0 24 0;
-#X connect 27 0 26 0;
 #X restore 117 392 pd example: default;
 #X connect 4 0 10 0;
 #X connect 5 0 10 0;
@@ -1537,4 +1421,4 @@ lanczos sin welch;
 #X connect 7 0 10 2;
 #X connect 8 0 10 3;
 #X connect 10 0 18 0;
-#X coords 0 434 1 433 85 60 0;
+#X coords 0 -1 1 1 4 4 1 10 10;

@@ -1,14 +1,9 @@
 ################################################################################
 lib.name = n_sa
 cflags = 
-ldlibs = -lSDL2
-class.sources = n_sa~.c
-sources = ./include/*
-datafiles = \
-n_sa~-help.pd \
-n_sa~-meta.pd \
-README.md \
-LICENSE.txt
+ldlibs = -lSDL2 -lGL -lGLU
+class.sources = n_sa~.c n_sxy~.c
+sources = 
 
 ################################################################################
 PDLIBBUILDER_DIR=pd-lib-builder/
