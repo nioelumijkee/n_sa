@@ -1,6 +1,3 @@
 *.o
 *.pd_linux
-*.gif
-*.tga
-*.png
 TODO.md
